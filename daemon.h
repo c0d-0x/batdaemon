@@ -1,5 +1,5 @@
-#ifndef DAEMON
-#define DAEMON
+#ifndef DAEMON_H
+#define DAEMON_H
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
