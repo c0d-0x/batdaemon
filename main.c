@@ -1,13 +1,13 @@
 #include "daemon.h"
 
 int main(int argc, char *argv[]) {
-  if (argc != 4) {
+  if (argc != 3) {
     printf("usage: batterymond <option> <file path> <File Name>\n");
     return EXIT_FAILURE;
   }
 
-  char *file_name = strdup(argv[3]);
-  char *file_path = strdup(argv[2]);
+  // char *file_name = strdup(argv[3]);
+  // char *file_path = strdup(argv[2]);
 
   if (strncmp(argv[1], "-p", 2) == 0) {
     // file_name = load_file(file_path);
@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
       watch_event = (struct inotify_event *)buf_prt;
       if (watch_event->mask & IN_MODIFY) {
-        fprintf(stdout, "%s is modified\n", file_name);
+        fprintf(stdout, "%s is modified\n", watch_event->name);
         break;
       }
     }
