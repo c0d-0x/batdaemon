@@ -1,4 +1,4 @@
-#include "daemon.h"
+#include "filemond.h"
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
