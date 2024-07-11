@@ -1,4 +1,4 @@
-#include "filemond.h"
+#include "headers/filemond.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

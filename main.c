@@ -1,4 +1,4 @@
-#include "filemond.h"
+#include "./src/filemond.c"
 
 int main(int argc, char *argv[]) {
   if (argc != 3) {
