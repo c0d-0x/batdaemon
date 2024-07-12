@@ -1,7 +1,8 @@
-#include "headers/filemond.h"
+#include "filemond.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+// #include <uchar.h>
 
 char *load_file(char *file_Path) {
   char *saveptr, *temp;
@@ -18,4 +19,6 @@ char *load_file(char *file_Path) {
   return NULL;
 }
 
-char *find_sub_dir(char *directory) {}
+// size_t read_config() {}
+
+// char *find_sub_dir(char *directory) {}

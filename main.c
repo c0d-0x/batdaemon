@@ -1,17 +1,18 @@
-#include "./src/filemond.c"
+#include "./src/filemond.h"
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
-    printf("usage: batterymond <option> <file path> <File Name>\n");
-    return EXIT_FAILURE;
-  }
+
+  // if (argc != 3) {
+  //   printf("usage: batterymond <option> <file path> <File Name>\n");
+  //   return EXIT_FAILURE;
+  // }
 
   // char *file_name = strdup(argv[3]);
   // char *file_path = strdup(argv[2]);
-
-  if (strncmp(argv[1], "-p", 2) == 0) {
-    // file_name = load_file(file_path);
-  }
+  //
+  // if (strncmp(argv[1], "-p", 2) == 0) {
+  //   file_name = load_file(file_path);
+  // }
 
   int file_dscripto = -1, watch_ptr = -1;
 
