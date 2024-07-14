@@ -1,54 +1,80 @@
 #include "./src/filemond.h"
+#include <signal.h>
+#include <stdio.h>
+#include <string.h>
+#include <time.h>
+#include <unistd.h>
+
+config_t *config_obj;
+char buffer[256];
+FILE *fp_log = NULL;
+
+void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
-  // if (argc != 3) {
-  //   printf("usage: batterymond <option> <file path> <File Name>\n");
-  //   return EXIT_FAILURE;
-  // }
-
-  // char *file_name = strdup(argv[3]);
-  // char *file_path = strdup(argv[2]);
-  //
-  // if (strncmp(argv[1], "-p", 2) == 0) {
-  //   file_name = load_file(file_path);
-  // }
-
-  int file_dscripto = -1, watch_ptr = -1;
-
-  file_dscripto = inotify_init();
-  if (file_dscripto == -1) {
-    perror("File Handler Failure");
-    return EXIT_FAILURE;
+  size_t i = 0;
+  struct sigaction sigact;
+  sigemptyset(&sigact.sa_mask);
+  sigact.sa_handler = signal_handler;
+  sigact.sa_flags = SA_RESTART;
+  if (sigaction(SIGHUP, &sigact, NULL) != 0 ||
+      sigaction(SIGTERM, &sigact, NULL) != 0 ||
+      sigaction(SIGUSR1, &sigact, NULL) != 0 ||
+      sigaction(SIGINT, &sigact, NULL) != 0) {
+    fprintf(stderr, "Fall to make reception for signals\n");
+    exit(EXIT_FAILURE);
   }
 
-  watch_ptr = inotify_add_watch(file_dscripto, argv[2], IN_MODIFY);
-  if (watch_ptr == -1) {
-    perror("Add Watch Failure");
-    return EXIT_FAILURE;
+  config_obj = load_config_file(CONFIG_FILE);
+  if (check_lock(LOCK_FILE) != 0) {
+    exit(EXIT_FAILURE);
   }
 
-  struct inotify_event *watch_event;
-  int len;
-  char buffer[4096];
+  if ((fp_log = fopen(LOCK_FILE, "a")) == NULL) {
+    perror("Fail to open logfile");
+    exit(EXIT_FAILURE);
+  }
 
-  while (true) {
-    len = read(file_dscripto, buffer, sizeof(buffer));
-    if (len == -1) {
-      perror("read");
-      exit(EXIT_FAILURE);
+  while (i <= config_obj->watchlist_len) {
+    printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i]));
+    i++;
+  }
+
+  config_obj_cleanup(config_obj);
+  while (1)
+    ;
+}
+
+void signal_handler(int sig) {
+  switch (sig) {
+
+  case SIGHUP:
+    config_obj = load_config_file(CONFIG_FILE);
+    //[TODO]: Add to the watch list
+    //[TODO]: Modify load_config_file() func to filter the watchlist.
+    printf("\n From SIGHUP\n");
+    for (size_t i = 0; i <= config_obj->watchlist_len; i++) {
+      printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i]));
     }
+    config_obj_cleanup(config_obj);
+    return;
 
-    for (char *buf_prt = buffer; buf_prt < buffer + len;
-         buf_prt += sizeof(struct inotify_event) + watch_event->len) {
-
-      watch_event = (struct inotify_event *)buf_prt;
-      if (watch_event->mask & IN_MODIFY) {
-        fprintf(stdout, "%s is modified\n", watch_event->name);
-        break;
+  case SIGUSR1:
+    if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
+      while (fread(buffer, 1, sizeof(buffer), fp_log) != 0) {
+        fprintf(stdin, "%s", buffer);
+        memset(buffer, '\0', strlen(buffer));
       }
+    } else {
+      fprintf(stderr, "No File have been modified\n");
     }
+    return;
   }
 
-  return EXIT_SUCCESS;
+  if (sig == SIGTERM || sig == SIGINT) {
+    // necessary clean up then exit
+    remove("lock");
+    exit(EXIT_SUCCESS);
+  }
 }

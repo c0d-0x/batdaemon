@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -Wall -Wextra -Wformat-security 
+CFLAGS = -g -Wall -Wextra -Wformat-security 
 # LIBS = 
 MAIN = main.c
 
