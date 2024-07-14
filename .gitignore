@@ -1,5 +1,7 @@
 main
 *.o
+*.log
+config
 test.c
 test
 bin
