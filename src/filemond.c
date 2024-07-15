@@ -25,9 +25,9 @@ config_t *load_config_file(char *file_Path) {
 
   config_obj = malloc(sizeof(config_t));
   while (fgets(buffer, sizeof(buffer), fp_config) > 0 && errno != EOF) {
-    tok = strchr(buffer, '\n');
-    index_n = tok - buffer;
-    if (index_n > 0) {
+
+    if ((tok = strchr(buffer, '\n')) != NULL) {
+      index_n = tok - buffer;
       buffer[index_n] = '\0';
     }
 
