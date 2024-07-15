@@ -5,14 +5,15 @@
 #include <unistd.h>
 
 config_t *load_config_file(char *file_Path) {
-  size_t i = 0;
-  char buffer[PATH_MAX]; //*tok;
+  size_t i = 0, index_n = -1;
+
+  char buffer[PATH_MAX], *tok;
   config_t *config_obj;
   FILE *fp_config = NULL;
 
   if (access(file_Path, F_OK) != 0) {
-    fp_config = fopen(file_Path, "w");
-    fclose(fp_config);
+    // fp_config = fopen(file_Path, "w");
+    // fclose(fp_config);
     fprintf(stderr, "Config file not found!!\n");
     return NULL;
   }
@@ -23,9 +24,13 @@ config_t *load_config_file(char *file_Path) {
   }
 
   config_obj = malloc(sizeof(config_t));
-  while ((fscanf(fp_config, "%s", buffer)) > 0 && errno != EOF) {
-    // tok = strchr(buffer, '\n');
-    // *tok = '\0';
+  while (fgets(buffer, sizeof(buffer), fp_config) > 0 && errno != EOF) {
+    tok = strchr(buffer, '\n');
+    index_n = tok - buffer;
+    if (index_n > 0) {
+      buffer[index_n] = '\0';
+    }
+
     config_obj->watchlist_len = i;
     (config_obj->watchlist[i]) = strdup(buffer);
     i++;

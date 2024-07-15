@@ -1,6 +1,7 @@
 main
 *.o
 *.log
+lock
 config
 test.c
 test

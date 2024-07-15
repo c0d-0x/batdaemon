@@ -26,7 +26,10 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  config_obj = load_config_file(CONFIG_FILE);
+  if ((config_obj = load_config_file(CONFIG_FILE)) == NULL) {
+    exit(EXIT_FAILURE);
+  }
+
   if (check_lock(LOCK_FILE) != 0) {
     exit(EXIT_FAILURE);
   }
@@ -61,11 +64,16 @@ void signal_handler(int sig) {
     return;
 
   case SIGUSR1:
+    if (fp_log)
+      fclose(fp_log);
+
     if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
       while (fread(buffer, 1, sizeof(buffer), fp_log) != 0) {
         fprintf(stdin, "%s", buffer);
         memset(buffer, '\0', strlen(buffer));
       }
+
+      fp_log = fopen(LOG_FILE, "a");
     } else {
       fprintf(stderr, "No File have been modified\n");
     }
@@ -74,7 +82,7 @@ void signal_handler(int sig) {
 
   if (sig == SIGTERM || sig == SIGINT) {
     // necessary clean up then exit
-    remove("lock");
+    remove(LOCK_FILE);
     exit(EXIT_SUCCESS);
   }
 }
