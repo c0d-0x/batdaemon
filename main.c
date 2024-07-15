@@ -64,15 +64,17 @@ void signal_handler(int sig) {
     return;
 
   case SIGUSR1:
-    if (fp_log)
+    if (fp_log != NULL)
       fclose(fp_log);
 
     if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
-      while (fread(buffer, 1, sizeof(buffer), fp_log) != 0) {
-        fprintf(stdin, "%s", buffer);
+
+      while (fgets(buffer, sizeof(buffer), fp_log) != 0) {
+        fprintf(stdout, "%s", buffer);
         memset(buffer, '\0', strlen(buffer));
       }
 
+      fclose(fp_log);
       fp_log = fopen(LOG_FILE, "a");
     } else {
       fprintf(stderr, "No File have been modified\n");
@@ -81,7 +83,10 @@ void signal_handler(int sig) {
   }
 
   if (sig == SIGTERM || sig == SIGINT) {
+
     // necessary clean up then exit
+    if (fp_log != NULL)
+      fclose(fp_log);
     remove(LOCK_FILE);
     exit(EXIT_SUCCESS);
   }
