@@ -69,7 +69,7 @@ void signal_handler(int sig) {
 
     if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
 
-      while (fgets(buffer, sizeof(buffer), fp_log) != 0) {
+      while (fgets(buffer, sizeof(buffer), fp_log) != NULL) {
         fprintf(stdout, "%s", buffer);
         memset(buffer, '\0', strlen(buffer));
       }

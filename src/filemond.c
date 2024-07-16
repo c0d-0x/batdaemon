@@ -12,8 +12,6 @@ config_t *load_config_file(char *file_Path) {
   FILE *fp_config = NULL;
 
   if (access(file_Path, F_OK) != 0) {
-    // fp_config = fopen(file_Path, "w");
-    // fclose(fp_config);
     fprintf(stderr, "Config file not found!!\n");
     return NULL;
   }
@@ -24,7 +22,7 @@ config_t *load_config_file(char *file_Path) {
   }
 
   config_obj = malloc(sizeof(config_t));
-  while (fgets(buffer, sizeof(buffer), fp_config) > 0 && errno != EOF) {
+  while (fgets(buffer, sizeof(buffer), fp_config) != NULL && errno != EOF) {
 
     if ((tok = strchr(buffer, '\n')) != NULL) {
       index_n = tok - buffer;
@@ -63,7 +61,7 @@ size_t check_lock(char *path_lock) {
 
   fprintf(stderr,
           "An instance of cruxfilemond is already running\n"
-          "If no no cruxfilemond instance is running, Delete %s file \n",
+          "If no cruxfilemond instance is running, Delete %s file \n",
           LOCK_FILE);
   return CUSTOM_ERR;
 }
