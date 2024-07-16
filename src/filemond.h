@@ -8,15 +8,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/inotify.h>
 #include <time.h>
 #include <unistd.h>
 
 #define MAX_WATCH 200
 #define CUSTOM_ERR -1
-#define CONFIG_FILE "config"
-#define LOG_FILE "cruxfilemond.log"
-#define LOCK_FILE "lock"
+#define CONFIG_FILE "cf.config"
+#define LOG_FILE "cf.log"
+#define LOCK_FILE "cf.lock"
 
 // create a file to save files and dirs currently being watched.
 typedef struct {

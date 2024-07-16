@@ -22,7 +22,8 @@ config_t *load_config_file(char *file_Path) {
   }
 
   config_obj = malloc(sizeof(config_t));
-  while (fgets(buffer, sizeof(buffer), fp_config) != NULL && errno != EOF) {
+  while (fgets(buffer, sizeof(buffer), fp_config) != NULL && errno != EOF &&
+         i < MAX_WATCH) {
 
     if ((tok = strchr(buffer, '\n')) != NULL) {
       index_n = tok - buffer;
@@ -31,8 +32,8 @@ config_t *load_config_file(char *file_Path) {
 
     config_obj->watchlist_len = i;
     (config_obj->watchlist[i]) = strdup(buffer);
-    i++;
     memset(buffer, '\0', strlen(buffer));
+    i++;
   }
   fclose(fp_config);
   return config_obj;

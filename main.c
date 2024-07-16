@@ -26,7 +26,10 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if ((config_obj = load_config_file(CONFIG_FILE)) == NULL) {
+  config_obj = load_config_file(CONFIG_FILE);
+  if (config_obj->watchlist_len == 0) {
+    fprintf(stdout, "%s is empty! Add files or dirs to be watched\n",
+            CONFIG_FILE);
     exit(EXIT_FAILURE);
   }
 

@@ -1,8 +1,8 @@
 main
 *.o
 *.log
-lock
-config
+*.lock
+*.config
 test.c
 test
 bin
