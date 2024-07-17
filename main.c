@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
       sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGUSR1, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
-    errx(EXIT_FAILURE, "Fall to make reception for signals\n");
+    errx(EXIT_FAILURE, "Fail to make reception for signals\n");
   }
 
   config_obj = load_config_file(CONFIG_FILE);
@@ -41,9 +41,11 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // for debugging and testing logic
+  // for debugging and testing purposes
+
   while (i <= config_obj->watchlist_len) {
-    printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i]));
+    printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
+           (config_obj->watchlist[i].F_TYPE));
     i++;
   }
 
@@ -61,7 +63,7 @@ void signal_handler(int sig) {
     //[TODO]: Modify load_config_file() func to filter the watchlist.
     printf("\n From SIGHUP\n");
     for (size_t i = 0; i <= config_obj->watchlist_len; i++) {
-      printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i]));
+      printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i].path));
     }
     config_obj_cleanup(config_obj);
     return;

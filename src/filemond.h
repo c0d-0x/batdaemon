@@ -16,11 +16,19 @@
 #define CONFIG_FILE "cf.config"
 #define LOG_FILE "cf.log"
 #define LOCK_FILE "cf.lock"
+#define F_IS_DIR 1
+#define F_NT_FND -1
+#define F_IS_FILE 0
 
 // create a file to save files and dirs currently being watched.
 typedef struct {
+  size_t F_TYPE;
+  char *path;
+} watch_t;
+
+typedef struct {
   size_t watchlist_len;
-  char *watchlist[MAX_WATCH];
+  watch_t watchlist[MAX_WATCH];
 } config_t;
 
 config_t *load_config_file(char *file_Path);

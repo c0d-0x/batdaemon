@@ -1,12 +1,14 @@
 #include "filemond.h"
+#include <err.h>
 #include <stdio.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
 
 config_t *load_config_file(char *file_Path) {
-  size_t i = 0, index_n = -1;
-
+  struct stat path_status;
+  size_t i = 0, index_n = -1, F_flag;
   char buffer[PATH_MAX], *tok;
   config_t *config_obj;
   FILE *fp_config = NULL;
@@ -30,8 +32,23 @@ config_t *load_config_file(char *file_Path) {
       buffer[index_n] = '\0';
     }
 
+    if (stat(buffer, &path_status) == 0) {
+      if (path_status.st_mode & S_IFDIR) {
+        F_flag = F_IS_DIR;
+      } else if (path_status.st_mode & S_IFREG) {
+        F_flag = F_IS_FILE;
+      } else {
+        continue;
+      }
+    } else {
+      fclose(fp_config);
+      fprintf(stderr, "%s\n -> Invalid input from the config\n", buffer);
+      exit(EXIT_FAILURE);
+    }
+
     config_obj->watchlist_len = i;
-    (config_obj->watchlist[i]) = strdup(buffer);
+    config_obj->watchlist[i].F_TYPE = F_flag;
+    (config_obj->watchlist[i].path) = strdup(buffer);
     memset(buffer, '\0', strlen(buffer));
     i++;
   }
@@ -41,7 +58,7 @@ config_t *load_config_file(char *file_Path) {
 
 void config_obj_cleanup(config_t *config_obj) {
   for (size_t s = 0; s <= config_obj->watchlist_len; s++) {
-    free(config_obj->watchlist[s]);
+    free(config_obj->watchlist[s].path);
   }
   free(config_obj);
 }
