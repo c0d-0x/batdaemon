@@ -1,4 +1,5 @@
 #include "filemond.h"
+#include <cstdlib>
 #include <err.h>
 #include <stdio.h>
 #include <sys/stat.h>
@@ -15,7 +16,7 @@ config_t *load_config_file(char *file_Path) {
 
   if (access(file_Path, F_OK) != 0) {
     fprintf(stderr, "Config file not found!!\n");
-    return NULL;
+    exit(EXIT_FAILURE);
   }
 
   if ((fp_config = fopen(file_Path, "r")) == NULL) {
