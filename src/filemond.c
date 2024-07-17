@@ -44,7 +44,6 @@ void config_obj_cleanup(config_t *config_obj) {
     free(config_obj->watchlist[s]);
   }
   free(config_obj);
-  config_obj = NULL;
 }
 
 size_t check_lock(char *path_lock) {

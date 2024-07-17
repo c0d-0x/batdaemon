@@ -1,4 +1,5 @@
 #include "./src/filemond.h"
+#include <err.h>
 #include <signal.h>
 #include <stdio.h>
 #include <string.h>
@@ -22,15 +23,13 @@ int main(int argc, char *argv[]) {
       sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGUSR1, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
-    fprintf(stderr, "Fall to make reception for signals\n");
-    exit(EXIT_FAILURE);
+    errx(EXIT_FAILURE, "Fall to make reception for signals\n");
   }
 
   config_obj = load_config_file(CONFIG_FILE);
   if (config_obj->watchlist_len == 0) {
-    fprintf(stdout, "%s is empty! Add files or dirs to be watched\n",
-            CONFIG_FILE);
-    exit(EXIT_FAILURE);
+    errx(EXIT_SUCCESS, "%s is empty! Add files or dirs to be watched\n",
+         CONFIG_FILE);
   }
 
   if (check_lock(LOCK_FILE) != 0) {
@@ -42,6 +41,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  // for debugging and testing logic
   while (i <= config_obj->watchlist_len) {
     printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i]));
     i++;
