@@ -46,7 +46,7 @@ config_t *load_config_file(char *file_Path) {
       exit(EXIT_FAILURE);
     }
 
-    config_obj->watchlist_len = i;
+    config_obj->watchlist_len = i + 1;
     config_obj->watchlist[i].F_TYPE = F_flag;
     (config_obj->watchlist[i].path) = strdup(buffer);
     memset(buffer, '\0', strlen(buffer));

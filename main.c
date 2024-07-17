@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 
   // for debugging and testing purposes
 
-  while (i <= config_obj->watchlist_len) {
+  while (i < config_obj->watchlist_len) {
     printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
            (config_obj->watchlist[i].F_TYPE));
     i++;
@@ -62,7 +62,7 @@ void signal_handler(int sig) {
     //[TODO]: Add to the watch list
     //[TODO]: Modify load_config_file() func to filter the watchlist.
     printf("\n From SIGHUP\n");
-    for (size_t i = 0; i <= config_obj->watchlist_len; i++) {
+    for (size_t i = 0; i < config_obj->watchlist_len; i++) {
       printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i].path));
     }
     config_obj_cleanup(config_obj);
