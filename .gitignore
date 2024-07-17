@@ -3,6 +3,8 @@ main
 *.log
 *.lock
 *.config
+.idea
+.vscode
 test.c
 test
 bin
