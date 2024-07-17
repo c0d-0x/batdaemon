@@ -1,5 +1,4 @@
 #include "filemond.h"
-#include <cstdlib>
 #include <err.h>
 #include <stdio.h>
 #include <sys/stat.h>
