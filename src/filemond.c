@@ -57,7 +57,7 @@ config_t *load_config_file(char *file_Path) {
 }
 
 void config_obj_cleanup(config_t *config_obj) {
-  for (size_t s = 0; s <= config_obj->watchlist_len; s++) {
+  for (size_t s = 0; s < config_obj->watchlist_len; s++) {
     free(config_obj->watchlist[s].path);
   }
   free(config_obj);
