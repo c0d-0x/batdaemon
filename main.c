@@ -27,7 +27,7 @@ int main(int argc, char *argv[]) {
   }
 
   config_obj = load_config_file(CONFIG_FILE);
-  if (config_obj->watchlist_len == 0) {
+  if (config_obj->watchlist_len == 0 && config_obj->watchlist->path == NULL) {
     errx(EXIT_SUCCESS, "%s is empty! Add files or dirs to be watched\n",
          CONFIG_FILE);
   }

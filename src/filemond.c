@@ -8,7 +8,7 @@
 
 config_t *load_config_file(char *file_Path) {
   struct stat path_status;
-  size_t i = 0, index_n = -1, F_flag;
+  size_t i = 0, index_n = -1, F_Flag;
   char buffer[PATH_MAX], *tok;
   config_t *config_obj;
   FILE *fp_config = NULL;
@@ -34,9 +34,9 @@ config_t *load_config_file(char *file_Path) {
 
     if (stat(buffer, &path_status) == 0) {
       if (path_status.st_mode & S_IFDIR) {
-        F_flag = F_IS_DIR;
+        F_Flag = F_IS_DIR;
       } else if (path_status.st_mode & S_IFREG) {
-        F_flag = F_IS_FILE;
+        F_Flag = F_IS_FILE;
       } else {
         continue;
       }
@@ -47,7 +47,7 @@ config_t *load_config_file(char *file_Path) {
     }
 
     config_obj->watchlist_len = i + 1;
-    config_obj->watchlist[i].F_TYPE = F_flag;
+    config_obj->watchlist[i].F_TYPE = F_Flag;
     (config_obj->watchlist[i].path) = strdup(buffer);
     memset(buffer, '\0', strlen(buffer));
     i++;
@@ -78,7 +78,7 @@ size_t check_lock(char *path_lock) {
 
   fprintf(stderr,
           "An instance of cruxfilemond is already running\n"
-          "If no cruxfilemond instance is running, Delete %s file \n",
+          "If no cruxfilemond instance is running, Delete '%s' file \n",
           LOCK_FILE);
   return CUSTOM_ERR;
 }
