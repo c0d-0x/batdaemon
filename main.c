@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 config_t *config_obj;
-char buffer[256];
+char *buffer = NULL;
 FILE *fp_log = NULL;
 
 void signal_handler(int sig);
@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
 }
 
 void signal_handler(int sig) {
+
   switch (sig) {
 
   case SIGHUP:
@@ -69,17 +70,24 @@ void signal_handler(int sig) {
     return;
 
   case SIGUSR1:
+
     if (fp_log != NULL)
       fclose(fp_log);
 
     if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
 
+      if ((buffer = calloc(256, sizeof(char))) == NULL) {
+        fclose(fp_log);
+        perror("Fail to allocate memory");
+        exit(EXIT_FAILURE);
+      }
+
       while (fgets(buffer, sizeof(buffer), fp_log) != NULL) {
         fprintf(stdout, "%s", buffer);
-        memset(buffer, '\0', strlen(buffer));
       }
 
       fclose(fp_log);
+      free(buffer);
       fp_log = fopen(LOG_FILE, "a");
     } else {
       fprintf(stderr, "No File have been modified\n");
@@ -93,6 +101,7 @@ void signal_handler(int sig) {
     if (fp_log != NULL)
       fclose(fp_log);
     remove(LOCK_FILE);
+
     exit(EXIT_SUCCESS);
   }
 }
