@@ -1,8 +1,14 @@
 #include "./src/filemond.h"
 #include <err.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <linux/fanotify.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/fanotify.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -14,6 +20,7 @@ void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
 
+  int fan_fd;
   size_t i = 0;
   struct sigaction sigact;
   sigemptyset(&sigact.sa_mask);
@@ -41,9 +48,31 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  // for debugging and testing purposes
+  // fanotify for mornitoring files.
+  fan_fd =
+      fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK, O_RDONLY);
+  if (fan_fd == -1) {
+    perror("fanotify_init Failed");
+    exit(EXIT_FAILURE);
+  }
 
+  // for debugging and testing purposes
   while (i < config_obj->watchlist_len) {
+
+    // if (config_obj->watchlist[i].F_TYPE == F_NT_FND) {
+    //   continue;
+    // }
+
+    if (fanotify_mark(fan_fd,
+                      (config_obj->watchlist[i].F_TYPE)
+                          ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
+                          : FAN_MARK_ADD,
+                      FAN_OPEN_PERM | FAN_CLOSE_WRITE | FAN_EVENT_ON_CHILD,
+                      AT_FDCWD, config_obj->watchlist[i].path) == -1) {
+      perror("fanotify_mark");
+      exit(EXIT_FAILURE);
+    }
+
     printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
            (config_obj->watchlist[i].F_TYPE));
     i++;

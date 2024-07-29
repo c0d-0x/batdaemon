@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/fanotify.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -33,6 +34,7 @@ typedef struct {
 
 config_t *load_config_file(char *file_Path);
 void config_obj_cleanup(config_t *config_obj);
-char *write_log(void);
+static int write_log(int, char *, char **);
+void fan_event_handler(int fan_fd);
 size_t check_lock(char *path_lock);
 #endif

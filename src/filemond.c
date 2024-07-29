@@ -82,3 +82,15 @@ size_t check_lock(char *path_lock) {
           LOCK_FILE);
   return CUSTOM_ERR;
 }
+
+// [TODO]: To be implemented
+
+static int write_log(int log_fd, char *path_log, char **buf) {
+  // tokenize buf and structure it for writing to the log file.
+  // - process name and uid for the user.
+  // -file path as well
+
+  return 0;
+}
+
+void fan_event_handler(int fan_fd) {}
