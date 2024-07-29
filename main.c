@@ -5,6 +5,7 @@
 #include <linux/fanotify.h>
 #include <poll.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +13,7 @@
 #include <time.h>
 #include <unistd.h>
 
-config_t *config_obj;
+config_t *config_obj = NULL;
 char *buffer = NULL;
 FILE *fp_log = NULL;
 
@@ -80,8 +81,9 @@ int main(int argc, char *argv[]) {
   }
 
   config_obj_cleanup(config_obj);
-  while (1)
-    ;
+
+  while (true)
+    fan_event_handler(fan_fd);
 }
 
 void signal_handler(int sig) {

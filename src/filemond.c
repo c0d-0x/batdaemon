@@ -1,7 +1,12 @@
 #include "filemond.h"
 #include <err.h>
+#include <fcntl.h>
+#include <libproc2/misc.h>
+#include <linux/fanotify.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <sys/stat.h>
+#include <sys/syscall.h>
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
@@ -49,7 +54,6 @@ config_t *load_config_file(char *file_Path) {
     config_obj->watchlist_len = i + 1;
     config_obj->watchlist[i].F_TYPE = F_Flag;
     (config_obj->watchlist[i].path) = strdup(buffer);
-    memset(buffer, '\0', strlen(buffer));
     i++;
   }
   fclose(fp_config);
@@ -93,4 +97,142 @@ static int write_log(int log_fd, char *path_log, char **buf) {
   return 0;
 }
 
-void fan_event_handler(int fan_fd) {}
+// static char *proc_info(pid_t pid) {
+//   char procfd_path[32] = {0};
+//   char *buffer = NULL;
+//   if ((buffer = malloc(sizeof(char) * 32)) == NULL) {
+//
+//     perror("Malloc Failed");
+//     return NULL;
+//   }
+//
+//   sprintf(procfd_path, "/proc/%d/status", pid);
+//   procfd_path[strlen(procfd_path)] = '\0';
+//   int proc_fd = open(procfd_path, O_RDONLY | O_NONBLOCK);
+//   if (proc_fd == -1) {
+//     perror("Failed to open proc_fd");
+//     free(buffer);
+//     return NULL;
+//   }
+//
+//   int r_len = read(proc_fd, buffer, sizeof(buffer));
+//
+//   if (r_len <= 0) {
+//     free(buffer);
+//     return NULL;
+//   }
+//
+//   return buffer;
+// }
+
+static void proc_info(pid_t pid) {
+  char procfd_path[32] = {0};
+  char *buffer = NULL;
+  if ((buffer = malloc(sizeof(char) * 256)) == NULL) {
+
+    perror("Malloc Failed");
+    return;
+  }
+
+  sprintf(procfd_path, "/proc/%d/status", pid);
+  procfd_path[strlen(procfd_path)] = '\0';
+  int proc_fd = open(procfd_path, O_RDONLY | O_NONBLOCK);
+  if (proc_fd == -1) {
+    perror("Failed to open proc_fd");
+    free(buffer);
+    return;
+  }
+
+  while (read(proc_fd, buffer, sizeof(buffer)) > 0 && errno != EAGAIN) {
+    write(1, buffer, sizeof(buffer));
+  }
+  free(buffer);
+}
+
+void fan_event_handler(int fan_fd) {
+  const struct fanotify_event_metadata *metadata;
+  struct fanotify_event_metadata buf[200];
+  ssize_t len;
+  char path[PATH_MAX];
+  ssize_t path_len;
+  char procfd_path[PATH_MAX];
+  struct fanotify_response response;
+
+  while (true) {
+
+    /* Read some events. */
+
+    len = read(fan_fd, buf, sizeof(buf));
+    if (len == -1 && errno != EAGAIN) {
+      perror("read");
+      exit(EXIT_FAILURE);
+    }
+
+    /* Check if end of available data reached. */
+
+    if (len <= 0)
+      break;
+
+    /* Point to the first event in the buffer. */
+
+    metadata = buf;
+
+    /* Loop over all events in the buffer. */
+
+    while (FAN_EVENT_OK(metadata, len)) {
+
+      /* Check that run-time and compile-time structures match. */
+
+      if (metadata->vers != FANOTIFY_METADATA_VERSION) {
+        fprintf(stderr, "Mismatch of fanotify metadata version.\n");
+        exit(EXIT_FAILURE);
+      }
+
+      /* metadata->fd contains either FAN_NOFD, indicating a
+         queue overflow, or a file descriptor (a nonnegative
+         integer). Here, we simply ignore queue overflow. */
+
+      if (metadata->fd >= 0) {
+
+        /* Handle open permission event. */
+
+        if (metadata->mask & FAN_OPEN_PERM) {
+          printf("FAN_OPEN_PERM_PID: %d ", metadata->pid);
+
+          /* Allow file to be opened. */
+
+          proc_info(metadata->pid);
+          response.fd = metadata->fd;
+          response.response = FAN_ALLOW;
+          write(fan_fd, &response, sizeof(response));
+        }
+
+        /* Handle closing of writable file event. */
+
+        if (metadata->mask & FAN_CLOSE_WRITE)
+          printf("FAN_CLOSE_WRITE: ");
+
+        /* Retrieve and print pathname of the accessed file. */
+
+        snprintf(procfd_path, sizeof(procfd_path), "/proc/self/fd/%d",
+                 metadata->fd);
+        path_len = readlink(procfd_path, path, sizeof(path) - 1);
+        if (path_len == -1) {
+          perror("readlink");
+          exit(EXIT_FAILURE);
+        }
+
+        path[path_len] = '\0';
+        printf("File: %s\n", path);
+
+        /* Close the file descriptor of the event. */
+
+        close(metadata->fd);
+      }
+
+      /* Advance to next event. */
+
+      metadata = FAN_EVENT_NEXT(metadata, len);
+    }
+  }
+}
