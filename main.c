@@ -52,14 +52,14 @@ int main(int argc, char *argv[]) {
   fan_fd =
       fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK, O_RDONLY);
   if (fan_fd == -1) {
-    perror("fanotify_init Failed");
+    perror("Fanotify_Init Failed");
     exit(EXIT_FAILURE);
   }
 
-  // for debugging and testing purposes
   while (i < config_obj->watchlist_len) {
 
     // if (config_obj->watchlist[i].F_TYPE == F_NT_FND) {
+    // i++;
     //   continue;
     // }
 
@@ -69,10 +69,11 @@ int main(int argc, char *argv[]) {
                           : FAN_MARK_ADD,
                       FAN_OPEN_PERM | FAN_CLOSE_WRITE | FAN_EVENT_ON_CHILD,
                       AT_FDCWD, config_obj->watchlist[i].path) == -1) {
-      perror("fanotify_mark");
+      perror("Fanotify_Mark");
       exit(EXIT_FAILURE);
     }
 
+    // for debugging and testing purposes
     printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
            (config_obj->watchlist[i].F_TYPE));
     i++;
