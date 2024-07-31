@@ -32,6 +32,15 @@ typedef struct {
   watch_t watchlist[MAX_WATCH];
 } config_t;
 
+typedef enum { NAME = 0, UMASK, PPID, STATE, UID } proc_info_enum;
+typedef struct {
+  char *Name;
+  char *Umask;
+  char status;
+  int Uid;
+  int ppid;
+} proc_info_t;
+
 config_t *load_config_file(char *file_Path);
 void config_obj_cleanup(config_t *config_obj);
 static int write_log(int, char *, char **);

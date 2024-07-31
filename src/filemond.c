@@ -5,6 +5,7 @@
 #include <linux/fanotify.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -100,8 +101,7 @@ static int write_log(int log_fd, char *path_log, char **buf) {
 // static char *proc_info(pid_t pid) {
 //   char procfd_path[32] = {0};
 //   char *buffer = NULL;
-//   if ((buffer = malloc(sizeof(char) * 32)) == NULL) {
-//
+//   if ((buffer = malloc(sizeof(char) * 256)) == NULL) {
 //     perror("Malloc Failed");
 //     return NULL;
 //   }
@@ -121,38 +121,45 @@ static int write_log(int log_fd, char *path_log, char **buf) {
 //     free(buffer);
 //     return NULL;
 //   }
-//
+
 //   return buffer;
 // }
 
-static void proc_info(pid_t pid) {
-  char procfd_path[32] = {0};
-  char *buffer = NULL;
-  if ((buffer = malloc(sizeof(char) * 256)) == NULL) {
+static void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
+  char procfd_path[32] = {0x0};
+  char buf_temp[56] = {0x0};
 
-    perror("Malloc Failed");
-    return;
-  }
+  snprintf(procfd_path, sizeof(procfd_path), "/proc/%d/status", pid);
 
-  sprintf(procfd_path, "/proc/%d/status", pid);
   procfd_path[strlen(procfd_path)] = '\0';
-  int proc_fd = open(procfd_path, O_RDONLY | O_NONBLOCK);
-  if (proc_fd == -1) {
-    perror("Failed to open proc_fd");
-    free(buffer);
-    return;
-  }
+  if (access(procfd_path, F_OK) == 0) {
+    printf("F: %s exist\n", procfd_path);
+    FILE *proc_fd = fopen(procfd_path, "r");
+    if (proc_fd == NULL) {
+      perror("Failed to open proc_fd");
+      return;
+    }
 
-  while (read(proc_fd, buffer, sizeof(buffer)) > 0 && errno != EAGAIN) {
-    write(1, buffer, sizeof(buffer));
+    char *tok;
+    size_t index_n, i = 0;
+    while (fgets(buf_temp, sizeof(buf_temp), proc_fd) > 0 && i < buf_max) {
+      if ((tok = strchr(buf_temp, '\n')) != NULL) {
+        index_n = tok - buf_temp;
+        buf_temp[index_n] = '\0';
+      }
+      buffer[i] = strdup(buf_temp);
+      i++;
+    }
+    fclose(proc_fd);
   }
-  free(buffer);
 }
 
 void fan_event_handler(int fan_fd) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200];
+  char *buffer[11] = {0x0};
   ssize_t len;
+  size_t j = 0;
   char path[PATH_MAX];
   ssize_t path_len;
   char procfd_path[PATH_MAX];
@@ -193,24 +200,22 @@ void fan_event_handler(int fan_fd) {
          integer). Here, we simply ignore queue overflow. */
 
       if (metadata->fd >= 0) {
-
+        if (metadata->pid == getpid()) {
+          continue;
+        }
         /* Handle open permission event. */
-
         if (metadata->mask & FAN_OPEN_PERM) {
-          printf("FAN_OPEN_PERM_PID: %d ", metadata->pid);
+          printf("FAN_OPEN_PERM_PID:");
+          proc_info(metadata->pid, buffer, 11);
 
           /* Allow file to be opened. */
 
-          proc_info(metadata->pid);
           response.fd = metadata->fd;
           response.response = FAN_ALLOW;
           write(fan_fd, &response, sizeof(response));
+        } else {
+          goto cont;
         }
-
-        /* Handle closing of writable file event. */
-
-        if (metadata->mask & FAN_CLOSE_WRITE)
-          printf("FAN_CLOSE_WRITE: ");
 
         /* Retrieve and print pathname of the accessed file. */
 
@@ -223,15 +228,21 @@ void fan_event_handler(int fan_fd) {
         }
 
         path[path_len] = '\0';
-        printf("File: %s\n", path);
+        printf("%s\n", path);
 
-        /* Close the file descriptor of the event. */
+        while (buffer[j] != NULL) {
+
+          fputs(buffer[j], stdout);
+          printf("\n");
+          free(buffer[j]);
+          j++;
+        }
 
         close(metadata->fd);
       }
 
       /* Advance to next event. */
-
+    cont:
       metadata = FAN_EVENT_NEXT(metadata, len);
     }
   }
