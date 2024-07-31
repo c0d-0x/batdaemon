@@ -98,32 +98,6 @@ static int write_log(int log_fd, char *path_log, char **buf) {
   return 0;
 }
 
-// static char *proc_info(pid_t pid) {
-//   char procfd_path[32] = {0};
-//   char *buffer = NULL;
-//   if ((buffer = malloc(sizeof(char) * 256)) == NULL) {
-//     perror("Malloc Failed");
-//     return NULL;
-//   }
-//
-//   sprintf(procfd_path, "/proc/%d/status", pid);
-//   procfd_path[strlen(procfd_path)] = '\0';
-//   int proc_fd = open(procfd_path, O_RDONLY | O_NONBLOCK);
-//   if (proc_fd == -1) {
-//     perror("Failed to open proc_fd");
-//     free(buffer);
-//     return NULL;
-//   }
-//
-//   int r_len = read(proc_fd, buffer, sizeof(buffer));
-//
-//   if (r_len <= 0) {
-//     free(buffer);
-//     return NULL;
-//   }
-
-//   return buffer;
-// }
 
 static void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};
