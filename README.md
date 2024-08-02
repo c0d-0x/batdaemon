@@ -14,16 +14,16 @@ cruxfilemond [options]
 ```
 ### Options:
 
--c <config_file>: Specify the configuration file path.<br>
--d: Run in foreground for debugging.
+- c `<config_file>`: Specify the configuration file path.<br>
+- d: Run in foreground for debugging.
 
 ## How it Works
 
-*Loads configuration:* Reads the configuration file and builds a list of paths to monitor.
-*Creates fanotify instance:* Initializes a fanotify file descriptor with appropriate flags.
-*Adds watches:* Adds watches for each configured path using fanotify_mark.
-*Event loop:* Continuously reads events from the fanotify file descriptor.
-*Event handling:* Processes events, retrieves process information, and optionally logs events.
+- *Loads configuration:* Reads the configuration file and builds a list of paths to monitor.
+- *Creates fanotify instance:* Initializes a fanotify file descriptor with appropriate flags.
+- *Adds watches:* Adds watches for each configured path using fanotify_mark.
+- *Event loop:* Continuously reads events from the fanotify file descriptor.
+- *Event handling:* Processes events, retrieves process information, and optionally logs events.
 
 ## Dependencies
 - Linux kernel with fanotify support
