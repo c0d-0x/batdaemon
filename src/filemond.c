@@ -1,7 +1,6 @@
 #include "filemond.h"
 #include <err.h>
 #include <fcntl.h>
-#include <libproc2/misc.h>
 #include <linux/fanotify.h>
 #include <stdbool.h>
 #include <stdio.h>
