@@ -98,7 +98,6 @@ static int write_log(int log_fd, char *path_log, char **buf) {
   return 0;
 }
 
-
 static void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};
   char buf_temp[56] = {0x0};
@@ -175,7 +174,7 @@ void fan_event_handler(int fan_fd) {
 
       if (metadata->fd >= 0) {
         if (metadata->pid == getpid()) {
-            metadata = FAN_EVENT_NEXT(metadata, len);
+          metadata = FAN_EVENT_NEXT(metadata, len);
           continue;
         }
         /* Handle open permission event. */
@@ -189,7 +188,7 @@ void fan_event_handler(int fan_fd) {
           response.response = FAN_ALLOW;
           write(fan_fd, &response, sizeof(response));
         } else {
-           metadata = FAN_EVENT_NEXT(metadata, len);
+          metadata = FAN_EVENT_NEXT(metadata, len);
           continue;
         }
 
