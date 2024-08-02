@@ -14,7 +14,7 @@ cruxfilemond [options]
 ```
 ### Options:
 
--c <config_file>: Specify the configuration file path.
+-c <config_file>: Specify the configuration file path.<br>
 -d: Run in foreground for debugging.
 
 ## How it Works
