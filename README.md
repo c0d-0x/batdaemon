@@ -9,9 +9,11 @@ It provides:
 - Single instance control: Ensures only one instance of the daemon runs at a time.
 
 ## Usage
+
 ```Bash
 cruxfilemond [options]
 ```
+
 ### Options:
 
 - c `<config_file>`: Specify the configuration file path.<br>
@@ -19,14 +21,16 @@ cruxfilemond [options]
 
 ## How it Works
 
-- *Loads configuration:* Reads the configuration file and builds a list of paths to monitor.
-- *Creates fanotify instance:* Initializes a fanotify file descriptor with appropriate flags.
-- *Adds watches:* Adds watches for each configured path using fanotify_mark.
-- *Event loop:* Continuously reads events from the fanotify file descriptor.
-- *Event handling:* Processes events, retrieves process information, and optionally logs events.
+- **Loads configuration:** Reads the configuration file and builds a list of paths to monitor.
+- **Creates fanotify instance:** Initializes a fanotify file descriptor with appropriate flags.
+- **Adds watches:** Adds watches for each configured path using fanotify_mark.
+- **Event loop:** Continuously reads events from the fanotify file descriptor.
+- **Event handling:** Processes events, retrieves process information, and optionally logs events.
 
 ## Dependencies
+
 - Linux kernel with fanotify support
+- poll library
 - Standard C libraries
 
 ## Signal Handling
