@@ -35,7 +35,7 @@ $(OBJFILES): $(CFILES)
 # 	sudo install -m 0755 $(BIN) $(PREFIX)/bin
 
 # Phony target (no actual command)
-.PHONY: clean uninstall all
+.PHONY: clean uninstall all test
 
 # Clean target
 clean:

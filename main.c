@@ -1,17 +1,5 @@
 #include "./src/filemond.h"
-#include <err.h>
-#include <fcntl.h>
-#include <limits.h>
-#include <linux/fanotify.h>
-#include <poll.h>
-#include <signal.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/fanotify.h>
-#include <time.h>
-#include <unistd.h>
+#include "./src/logger.h"
 
 config_t *config_obj = NULL;
 char *buffer = NULL;

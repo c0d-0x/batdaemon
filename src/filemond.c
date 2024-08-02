@@ -1,7 +1,9 @@
 #include "filemond.h"
+#include "logger.h"
 #include <err.h>
 #include <fcntl.h>
 #include <linux/fanotify.h>
+#include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
@@ -88,43 +90,6 @@ size_t check_lock(char *path_lock) {
 }
 
 // [TODO]: To be implemented
-
-static int write_log(int log_fd, char *path_log, char **buf) {
-  // tokenize buf and structure it for writing to the log file.
-  // - process name and uid for the user.
-  // -file path as well
-
-  return 0;
-}
-
-static void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
-  char procfd_path[32] = {0x0};
-  char buf_temp[56] = {0x0};
-
-  snprintf(procfd_path, sizeof(procfd_path), "/proc/%d/status", pid);
-
-  procfd_path[strlen(procfd_path)] = '\0';
-  if (access(procfd_path, F_OK) == 0) {
-    printf("F: %s exist\n", procfd_path);
-    FILE *proc_fd = fopen(procfd_path, "r");
-    if (proc_fd == NULL) {
-      perror("Failed to open proc_fd");
-      return;
-    }
-
-    char *tok;
-    size_t index_n, i = 0;
-    while (fgets(buf_temp, sizeof(buf_temp), proc_fd) > 0 && i < buf_max) {
-      if ((tok = strchr(buf_temp, '\n')) != NULL) {
-        index_n = tok - buf_temp;
-        buf_temp[index_n] = '\0';
-      }
-      buffer[i] = strdup(buf_temp);
-      i++;
-    }
-    fclose(proc_fd);
-  }
-}
 
 void fan_event_handler(int fan_fd) {
   const struct fanotify_event_metadata *metadata;
