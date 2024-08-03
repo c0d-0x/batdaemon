@@ -1,22 +1,22 @@
 #ifndef LOGGER_H
 #define LOGGER_H
 #include "filemond.h"
-#include <grp.h>
 #include <pwd.h>
+#include <signal.h>
 #include <stdio.h>
-typedef enum { NAME = 0, UMASK, PPID, STATE, UID } proc_info_enum;
+
 typedef struct {
+  char *file_path; /* accessed file path*/
   char *Name;
-  char *Umask;
-  char status;
+  size_t Umask;
+  char *Status;
   char *user_name;
-  char *group_name;
-  int ppid;
 } proc_info_t;
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max);
+proc_info_t *load_proc_info(char *buffer[]);
 size_t writer_log(const int log_fd, const char *watched_path, proc_info_t *);
-size_t get_user_group(const uid_t uid, const gid_t gid, proc_info_t *);
+char *get_user(const uid_t uid);
 
 #endif // !LOGGER_H
 #define LOGGER_H

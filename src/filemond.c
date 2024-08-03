@@ -143,7 +143,7 @@ void fan_event_handler(int fan_fd) {
         }
         /* Handle open permission event. */
         if (metadata->mask & FAN_OPEN_PERM) {
-          printf("FAN_OPEN_PERM_PID:");
+          printf("FAN_OPEN_PERM_PID:\n");
           proc_info(metadata->pid, buffer, 11);
 
           /* Allow file to be opened. */
@@ -167,16 +167,27 @@ void fan_event_handler(int fan_fd) {
         }
 
         path[path_len] = '\0';
-        printf("%s\n", path);
+        // printf("%s\n", path);
 
-        while (buffer[j] != NULL) {
+        // while (buffer[j] != NULL) {
+        //
+        //   fputs(buffer[j], stdout);
+        //   printf("\n");
+        //   // free(buffer[j]);
+        //   j++;
+        // }
 
-          fputs(buffer[j], stdout);
-          printf("\n");
-          free(buffer[j]);
-          j++;
+        proc_info_t *procinfo = load_proc_info(buffer);
+
+        if (procinfo != NULL) {
+          procinfo->file_path = path;
         }
 
+        printf("path: %s\nName:%s\nStatus: %s\nUname: %s\n",
+               procinfo->file_path, procinfo->Name, procinfo->Status,
+               procinfo->user_name);
+
+        free(procinfo);
         close(metadata->fd);
       }
 
