@@ -5,6 +5,6 @@ main
 *.config
 .idea
 .vscode
-test.c
+test.*
 test
 bin

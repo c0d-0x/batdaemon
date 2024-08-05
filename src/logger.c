@@ -47,13 +47,13 @@ proc_info_t *load_proc_info(char *buffer[]) {
   char *saveptr;
   char *token;
   proc_info_t *proc_info_struct = NULL;
-  if ((proc_info_struct = calloc(sizeof(proc_info_t), 0x1)) == NULL) {
+  if ((proc_info_struct = calloc(0x1, sizeof(proc_info_t))) == NULL) {
     perror("Calloc Failed");
     return NULL;
   }
 
   while (buffer[i] != NULL && i < 11) {
-    token = strtok_r(buffer[i], ":", &saveptr);
+    token = strtok_r(buffer[i], ": ", &saveptr);
     if (token == NULL) {
       errx(CUSTOM_ERR, "Failed to load_proc_info\n");
     }
@@ -70,7 +70,7 @@ proc_info_t *load_proc_info(char *buffer[]) {
     if (strncmp(token, "State", sizeof("State")) == 0) {
 
       token = strtok_r(NULL, " ", &saveptr);
-      proc_info_struct->Status = strdup(saveptr);
+      proc_info_struct->State = strdup(saveptr);
     }
 
     if (strncmp(token, "Uid", sizeof("Uid")) == 0) {
@@ -78,13 +78,13 @@ proc_info_t *load_proc_info(char *buffer[]) {
       token = strtok_r(NULL, " ", &saveptr);
       proc_info_struct->user_name = strdup(get_user(atoi(token)));
     }
+    free(buffer[i]);
     i++;
   }
   return proc_info_struct;
 }
 
-size_t writer_log(const int log_fd, const char *watched_path,
-                  proc_info_t *proc_info_struct) {
+size_t writer_log(const int log_fd, proc_info_t *procinfo) {
   // tokenize buf and structure it for writing to the log file.
   // - process name and uid for the user.
   // -file path as well

@@ -1,5 +1,7 @@
+#define _GNU_SOURCE
 #include "./src/filemond.h"
 #include "./src/logger.h"
+#include <fcntl.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
@@ -8,6 +10,10 @@ FILE *fp_log = NULL;
 void signal_handler(int sig);
 
 int main(int argc, char *argv[]) {
+
+  int fd, poll_num;
+  nfds_t nfds;
+  struct pollfd fds;
 
   int fan_fd;
   size_t i = 0;
@@ -22,12 +28,6 @@ int main(int argc, char *argv[]) {
     errx(EXIT_FAILURE, "Fail to make reception for signals\n");
   }
 
-  config_obj = load_config_file(CONFIG_FILE);
-  if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
-    errx(EXIT_SUCCESS, "%s is empty! Add files or dirs to be watched\n",
-         CONFIG_FILE);
-  }
-
   if (check_lock(LOCK_FILE) != 0) {
     exit(EXIT_FAILURE);
   }
@@ -38,11 +38,17 @@ int main(int argc, char *argv[]) {
   }
 
   // fanotify for mornitoring files.
-  fan_fd =
-      fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK, O_RDONLY);
+  fan_fd = fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK,
+                         O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     perror("Fanotify_Init Failed");
     exit(EXIT_FAILURE);
+  }
+
+  config_obj = load_config_file(CONFIG_FILE);
+  if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
+    errx(EXIT_SUCCESS, "%s is empty! Add files or dirs to be watched\n",
+         CONFIG_FILE);
   }
 
   while (i < config_obj->watchlist_len) {
@@ -56,8 +62,8 @@ int main(int argc, char *argv[]) {
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
                           : FAN_MARK_ADD,
-                      FAN_OPEN_PERM | FAN_CLOSE_WRITE | FAN_EVENT_ON_CHILD,
-                      AT_FDCWD, config_obj->watchlist[i].path) == -1) {
+                      FAN_OPEN_PERM | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                      config_obj->watchlist[i].path) == -1) {
       perror("Fanotify_Mark");
       exit(EXIT_FAILURE);
     }
@@ -69,11 +75,27 @@ int main(int argc, char *argv[]) {
   }
 
   config_obj_cleanup(config_obj);
+  nfds = 1;
+  fds.fd = fan_fd; /* Fanotify input */
+  fds.events = POLLIN;
 
-  while (true)
-    fan_event_handler(fan_fd);
+  while (true) {
+
+    poll_num = poll(&fds, nfds, -1);
+    if (poll_num == -1) {
+      if (errno == EINTR) /* Interrupted by a signal */
+        continue;         /* Restart poll() */
+
+      perror("Poll Failed"); /* Unexpected error */
+      exit(EXIT_FAILURE);
+    }
+
+    if (poll_num > 0) {
+      if (fds.revents & POLLIN)
+        fan_event_handler(fan_fd);
+    }
+  }
 }
-
 void signal_handler(int sig) {
 
   switch (sig) {

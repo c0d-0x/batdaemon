@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 config_t *load_config_file(char *file_Path) {
-  struct stat path_status;
+  struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
   char buffer[PATH_MAX], *tok;
   config_t *config_obj;
@@ -39,10 +39,10 @@ config_t *load_config_file(char *file_Path) {
       buffer[index_n] = '\0';
     }
 
-    if (stat(buffer, &path_status) == 0) {
-      if (path_status.st_mode & S_IFDIR) {
+    if (stat(buffer, &path_stat) == 0) {
+      if (path_stat.st_mode & S_IFDIR) {
         F_Flag = F_IS_DIR;
-      } else if (path_status.st_mode & S_IFREG) {
+      } else if (path_stat.st_mode & S_IFREG) {
         F_Flag = F_IS_FILE;
       } else {
         continue;
@@ -89,17 +89,27 @@ size_t check_lock(char *path_lock) {
   return CUSTOM_ERR;
 }
 
-// [TODO]: To be implemented
+static void cleanup_procinfo(proc_info_t *procinfo) {
+  if (procinfo != NULL) {
+    if (procinfo->user_name != NULL)
+      free(procinfo->user_name);
+    if (procinfo->Name != NULL)
+      free(procinfo->Name);
+    if (procinfo->State != NULL)
+      free(procinfo->State);
+    free(procinfo);
+  }
+}
 
 void fan_event_handler(int fan_fd) {
   const struct fanotify_event_metadata *metadata;
-  struct fanotify_event_metadata buf[200];
+  struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {0x0};
   ssize_t len;
-  size_t j = 0;
-  char path[PATH_MAX];
-  ssize_t path_len;
-  char procfd_path[PATH_MAX];
+  char path[PATH_MAX] = {0x0};
+  proc_info_t *procinfo;
+  ssize_t path_len, p_event;
+  char procfd_path[PATH_MAX] = {0x0};
   struct fanotify_response response;
 
   while (true) {
@@ -134,7 +144,7 @@ void fan_event_handler(int fan_fd) {
 
       /* metadata->fd contains either FAN_NOFD, indicating a
          queue overflow, or a file descriptor (a nonnegative
-         integer). Here, we simply ignore queue overflow. */
+         integer). Here, queue overflow is simply ignored. */
 
       if (metadata->fd >= 0) {
         if (metadata->pid == getpid()) {
@@ -143,7 +153,7 @@ void fan_event_handler(int fan_fd) {
         }
         /* Handle open permission event. */
         if (metadata->mask & FAN_OPEN_PERM) {
-          printf("FAN_OPEN_PERM_PID:\n");
+          p_event = FAN_OPEN_PERM;
           proc_info(metadata->pid, buffer, 11);
 
           /* Allow file to be opened. */
@@ -151,9 +161,9 @@ void fan_event_handler(int fan_fd) {
           response.fd = metadata->fd;
           response.response = FAN_ALLOW;
           write(fan_fd, &response, sizeof(response));
-        } else {
-          metadata = FAN_EVENT_NEXT(metadata, len);
-          continue;
+        } else if (metadata->mask & FAN_MODIFY) {
+          p_event = FAN_MODIFY;
+          proc_info(metadata->pid, buffer, 11);
         }
 
         /* Retrieve and print pathname of the accessed file. */
@@ -167,27 +177,20 @@ void fan_event_handler(int fan_fd) {
         }
 
         path[path_len] = '\0';
-        // printf("%s\n", path);
 
-        // while (buffer[j] != NULL) {
-        //
-        //   fputs(buffer[j], stdout);
-        //   printf("\n");
-        //   // free(buffer[j]);
-        //   j++;
-        // }
-
-        proc_info_t *procinfo = load_proc_info(buffer);
-
-        if (procinfo != NULL) {
-          procinfo->file_path = path;
+        if ((procinfo = load_proc_info(buffer)) == NULL) {
+          fprintf(stderr, "Fail to load effective process's info\n");
         }
+        procinfo->file_path = path;
+        procinfo->p_event =
+            (p_event == FAN_MODIFY) ? "FAN_MODIFY" : "FAN_OPEN_PERM";
 
-        printf("path: %s\nName:%s\nStatus: %s\nUname: %s\n",
-               procinfo->file_path, procinfo->Name, procinfo->Status,
-               procinfo->user_name);
+        // write logs here...
+        printf("p_event: %s\npath: %s\nName:%s\nStatus: %s\nUname: %s\n",
+               procinfo->p_event, procinfo->file_path, procinfo->Name,
+               procinfo->State, procinfo->user_name);
 
-        free(procinfo);
+        cleanup_procinfo(procinfo);
         close(metadata->fd);
       }
 
