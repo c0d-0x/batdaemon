@@ -13,15 +13,13 @@ void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   size_t index_n, i = 0;
 
   snprintf(procfd_path, sizeof(procfd_path), "/proc/%d/status", pid);
-
-  procfd_path[strlen(procfd_path)] = '\0';
   if (access(procfd_path, F_OK) == 0) {
     if ((proc_fd = fopen(procfd_path, "r")) == NULL) {
       perror("Failed to open proc_fd");
       return;
     }
 
-    while (fgets(buf_temp, sizeof(buf_temp), proc_fd) > 0 && i < buf_max) {
+    while (fgets(buf_temp, sizeof(buf_temp), proc_fd) != NULL && i < buf_max) {
       if ((tok = strchr(buf_temp, '\n')) != NULL) {
         index_n = tok - buf_temp;
         buf_temp[index_n] = '\0';
