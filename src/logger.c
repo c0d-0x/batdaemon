@@ -51,28 +51,28 @@ proc_info_t *load_proc_info(char *buffer[]) {
   }
 
   while (buffer[i] != NULL && i < 11) {
-    token = strtok_r(buffer[i], ": ", &saveptr);
+    token = strtok_r(buffer[i], ":\t\r ", &saveptr);
     if (token == NULL) {
       errx(CUSTOM_ERR, "Failed to load_proc_info\n");
     }
 
     // printf(" token: %s\n", token);
     if (strncmp(token, "Name", sizeof("Name")) == 0) {
-      proc_info_struct->Name = strdup(saveptr);
+      token = strtok_r(NULL, " ", &saveptr);
+      proc_info_struct->Name = strdup(token);
     }
 
     if (strncmp(token, "Umask", sizeof("Umask")) == 0) {
-      proc_info_struct->Umask = atoi(saveptr);
+      token = strtok_r(NULL, " ", &saveptr);
+      proc_info_struct->Umask = strdup(token);
     }
 
     if (strncmp(token, "State", sizeof("State")) == 0) {
-
       token = strtok_r(NULL, " ", &saveptr);
       proc_info_struct->State = strdup(saveptr);
     }
 
     if (strncmp(token, "Uid", sizeof("Uid")) == 0) {
-
       token = strtok_r(NULL, " ", &saveptr);
       proc_info_struct->user_name = strdup(get_user(atoi(token)));
     }
@@ -82,10 +82,38 @@ proc_info_t *load_proc_info(char *buffer[]) {
   return proc_info_struct;
 }
 
-size_t writer_log(const int log_fd, proc_info_t *procinfo) {
-  // tokenize buf and structure it for writing to the log file.
-  // - process name and uid for the user.
-  // -file path as well
+void cleanup_procinfo(proc_info_t *procinfo) {
+  if (procinfo != NULL) {
+    if (procinfo->user_name != NULL)
+      free(procinfo->user_name);
+    if (procinfo->Name != NULL)
+      free(procinfo->Name);
+    if (procinfo->State != NULL)
+      free(procinfo->State);
+    if (procinfo->Umask != NULL)
+      free(procinfo->Umask);
 
-  return EXIT_SUCCESS;
+    free(procinfo);
+  }
+}
+
+static void get_locale_time(char *buf) {
+  if (buf == NULL)
+    return;
+  struct tm tm = *localtime(&(time_t){time(NULL)});
+  asctime_r(&tm, buf);
+  buf[strnlen(buf, 26) - 1] = '\0';
+}
+
+void writer_log(FILE *log_fd, proc_info_t *procinfo) {
+  get_locale_time(procinfo->timedate);
+  fprintf(log_fd, "[ %s ]\n", procinfo->timedate);
+  fprintf(log_fd, "Event: %s\n", procinfo->p_event);
+  fprintf(log_fd, "File: %s\n", procinfo->file_path);
+  fprintf(log_fd, "Effective Process: %s\n", procinfo->Name);
+  fprintf(log_fd, "Effective Username: %s\n", procinfo->user_name);
+  fprintf(log_fd, "Effective Process Umask: %s\n", procinfo->Umask);
+  fprintf(log_fd, "Effective Process State: %s\n", procinfo->State);
+
+  return;
 }

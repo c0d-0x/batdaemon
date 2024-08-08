@@ -89,18 +89,6 @@ size_t check_lock(char *path_lock) {
   return CUSTOM_ERR;
 }
 
-static void cleanup_procinfo(proc_info_t *procinfo) {
-  if (procinfo != NULL) {
-    if (procinfo->user_name != NULL)
-      free(procinfo->user_name);
-    if (procinfo->Name != NULL)
-      free(procinfo->Name);
-    if (procinfo->State != NULL)
-      free(procinfo->State);
-    free(procinfo);
-  }
-}
-
 void fan_event_handler(int fan_fd) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
@@ -183,13 +171,9 @@ void fan_event_handler(int fan_fd) {
         }
         procinfo->file_path = path;
         procinfo->p_event =
-            (p_event == FAN_MODIFY) ? "FAN_MODIFY" : "FAN_OPEN_PERM";
+            (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
 
-        // write logs here...
-        printf("p_event: %s\npath: %s\nName:%s\nStatus: %s\nUname: %s\n",
-               procinfo->p_event, procinfo->file_path, procinfo->Name,
-               procinfo->State, procinfo->user_name);
-
+        writer_log(stdout, procinfo);
         cleanup_procinfo(procinfo);
         close(metadata->fd);
       }
