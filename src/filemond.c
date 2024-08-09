@@ -135,10 +135,6 @@ void fan_event_handler(int fan_fd) {
          integer). Here, queue overflow is simply ignored. */
 
       if (metadata->fd >= 0) {
-        if (metadata->pid == getpid()) {
-          metadata = FAN_EVENT_NEXT(metadata, len);
-          continue;
-        }
         /* Handle open permission event. */
         if (metadata->mask & FAN_OPEN_PERM) {
           p_event = FAN_OPEN_PERM;

@@ -1,0 +1,52 @@
+#include <errno.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+#define LOCK_FILE "cf.lock"
+void help(char *prog) {
+  fprintf(stderr, "usage:%s < -SIGNAL >\n", prog);
+  printf(" SIGKILL: %d\n SIGTERM: %d\n SIGINT: %d\n SIGHUP: %d\n SIGUSR1: %d\n",
+         SIGKILL, SIGTERM, SIGINT, SIGHUP, SIGUSR1);
+}
+
+int main(int argc, char *argv[]) {
+  if (argc != 2) {
+    help(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  char buf[64] = {0x0};
+  int fd_log;
+  int pid_cruxfilemond;
+  int sig = 0;
+  fd_log = open(LOCK_FILE, O_RDONLY | O_NONBLOCK);
+  if (fd_log == -1) {
+    perror("Fail to open LOCK_FILE");
+    return EXIT_FAILURE;
+  }
+
+  while (read(fd_log, buf, sizeof(int64_t)) < 0 && errno != EAGAIN)
+    ;
+  close(fd_log);
+
+  pid_cruxfilemond = atoi(buf);
+  sig = atoi(argv[1]);
+  if (sig >= 0 || pid_cruxfilemond < 2) {
+    help(argv[0]);
+    return EXIT_FAILURE;
+  }
+
+  printf("PID: %d\n", pid_cruxfilemond);
+  if (kill(pid_cruxfilemond, -sig) != 0) {
+    (errno == EPERM) ? fprintf(stderr, "Permission Required to Send Signal\n")
+                     : perror("Fail to send Signal");
+    return EXIT_FAILURE;
+  }
+
+  fprintf(stdout, "signal %d sent!!\n", -sig);
+  return EXIT_SUCCESS;
+}

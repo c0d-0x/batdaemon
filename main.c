@@ -1,7 +1,6 @@
 #define _GNU_SOURCE
 #include "./src/filemond.h"
 #include "./src/logger.h"
-#include <fcntl.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
@@ -97,7 +96,7 @@ int main(int argc, char *argv[]) {
   }
 }
 void signal_handler(int sig) {
-
+  // [TODO:] refactor
   switch (sig) {
 
   case SIGHUP:

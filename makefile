@@ -2,6 +2,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wformat-security 
 # LIBS = 
+CRX_MSG = ./cruxfilemond_msg
 MAIN = main.c
 
 # Source and object files
@@ -9,7 +10,7 @@ CFILES = ./src/*.c
 OBJFILES = *.o  
 
 # Target binaries
-BIN = ./bin/cruxfilemond
+BIN = ./bin
 
 # Installation prefix (default /usr/local)
 # PREFIX ?= /usr/local
@@ -18,10 +19,13 @@ BIN = ./bin/cruxfilemond
 # DESTDIR = $(HOME)/.local/share/cruxfilemond
 
 # Main target
-all: $(BIN)
+all: $(BIN)/cruxfilemond
+	$(CC) $(CFLAGS) $(CRX_MSG).c -o $(BIN)/$(CRX_MSG) 
+	@echo "Build Complete..."
+
 
 # Build executable
-$(BIN): $(OBJFILES)
+$(BIN)/cruxfilemond: $(OBJFILES)
 	$(CC) $(CFLAGS) $(LIBS) $(MAIN) -o $@ $^
 
 # Compile source files
@@ -39,7 +43,7 @@ $(OBJFILES): $(CFILES)
 
 # Clean target
 clean:
-	rm -f *.o $(BIN)
+	rm *.o $(BIN)/* 
 
 # Uninstall target
 # uninstall:
