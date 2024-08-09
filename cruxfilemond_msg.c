@@ -23,14 +23,13 @@ int main(int argc, char *argv[]) {
   int fd_log;
   int pid_cruxfilemond;
   int sig = 0;
-  fd_log = open(LOCK_FILE, O_RDONLY | O_NONBLOCK);
+  fd_log = open(LOCK_FILE, O_RDONLY);
   if (fd_log == -1) {
     perror("Fail to open LOCK_FILE");
     return EXIT_FAILURE;
   }
 
-  while (read(fd_log, buf, sizeof(int64_t)) < 0 && errno != EAGAIN)
-    ;
+  read(fd_log, buf, sizeof(int64_t));
   close(fd_log);
 
   pid_cruxfilemond = atoi(buf);
