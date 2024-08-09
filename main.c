@@ -37,8 +37,7 @@ int main(int argc, char *argv[]) {
   }
 
   // fanotify for mornitoring files.
-  fan_fd = fanotify_init(FAN_CLOEXEC | FAN_CLASS_CONTENT | FAN_NONBLOCK,
-                         O_RDONLY | O_LARGEFILE);
+  fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     perror("Fanotify_Init Failed");
     exit(EXIT_FAILURE);
@@ -61,7 +60,7 @@ int main(int argc, char *argv[]) {
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
                           : FAN_MARK_ADD,
-                      FAN_OPEN_PERM | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                      FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       config_obj->watchlist[i].path) == -1) {
       perror("Fanotify_Mark");
       exit(EXIT_FAILURE);

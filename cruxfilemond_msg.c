@@ -39,12 +39,12 @@ int main(int argc, char *argv[]) {
     return EXIT_FAILURE;
   }
 
-    if (kill(pid_cruxfilemond, -sig) != 0) {
+  if (kill(pid_cruxfilemond, -sig) != 0) {
     (errno == EPERM) ? fprintf(stderr, "Permission Required to Send Signal\n")
                      : perror("Fail to send Signal");
     return EXIT_FAILURE;
   }
 
-  fprintf(stdout, "signal %d sent to PID!!\n", -sig, pid_cruxfilemond);
+  fprintf(stdout, "signal %d sent to PID: %d!!\n", -sig, pid_cruxfilemond);
   return EXIT_SUCCESS;
 }

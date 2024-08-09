@@ -98,7 +98,7 @@ void fan_event_handler(int fan_fd) {
   proc_info_t *procinfo;
   ssize_t path_len, p_event;
   char procfd_path[PATH_MAX] = {0x0};
-  struct fanotify_response response;
+  // struct fanotify_response response;
 
   while (true) {
 
@@ -136,15 +136,15 @@ void fan_event_handler(int fan_fd) {
 
       if (metadata->fd >= 0) {
         /* Handle open permission event. */
-        if (metadata->mask & FAN_OPEN_PERM) {
-          p_event = FAN_OPEN_PERM;
+        if (metadata->mask & FAN_OPEN) {
+          p_event = FAN_OPEN;
           proc_info(metadata->pid, buffer, 11);
 
           /* Allow file to be opened. */
 
-          response.fd = metadata->fd;
-          response.response = FAN_ALLOW;
-          write(fan_fd, &response, sizeof(response));
+          // response.fd = metadata->fd;
+          // response.response = FAN_ALLOW;
+          // write(fan_fd, &response, sizeof(response));
         } else if (metadata->mask & FAN_MODIFY) {
           p_event = FAN_MODIFY;
           proc_info(metadata->pid, buffer, 11);
