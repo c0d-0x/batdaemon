@@ -1,21 +1,22 @@
 #define _GNU_SOURCE
 #include "./src/filemond.h"
 #include "./src/logger.h"
+#include <sys/types.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
 FILE *fp_log = NULL;
+int fan_fd;
 
 void signal_handler(int sig);
+void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
 
-  int fd, poll_num;
+  int poll_num;
   nfds_t nfds;
   struct pollfd fds;
 
-  int fan_fd;
-  size_t i = 0;
   struct sigaction sigact;
   sigemptyset(&sigact.sa_mask);
   sigact.sa_handler = signal_handler;
@@ -49,29 +50,7 @@ int main(int argc, char *argv[]) {
          CONFIG_FILE);
   }
 
-  while (i < config_obj->watchlist_len) {
-
-    // if (config_obj->watchlist[i].F_TYPE == F_NT_FND) {
-    // i++;
-    //   continue;
-    // }
-
-    if (fanotify_mark(fan_fd,
-                      (config_obj->watchlist[i].F_TYPE)
-                          ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
-                          : FAN_MARK_ADD,
-                      FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
-                      config_obj->watchlist[i].path) == -1) {
-      perror("Fanotify_Mark");
-      exit(EXIT_FAILURE);
-    }
-
-    // for debugging and testing purposes
-    printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
-           (config_obj->watchlist[i].F_TYPE));
-    i++;
-  }
-
+  fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
@@ -94,18 +73,45 @@ int main(int argc, char *argv[]) {
     }
   }
 }
+
+void fan_mark_wraper(int fd, config_t *config_obj) {
+
+  size_t i = 0;
+  while (i < config_obj->watchlist_len) {
+
+    // for debugging and testing purposes
+
+    if (fanotify_mark(fd,
+                      (config_obj->watchlist[i].F_TYPE)
+                          ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
+                          : FAN_MARK_ADD,
+                      FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                      config_obj->watchlist[i].path) == -1) {
+      perror("Fanotify_Mark");
+      exit(EXIT_FAILURE);
+    }
+    printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
+           (config_obj->watchlist[i].F_TYPE));
+    i++;
+  }
+}
+
 void signal_handler(int sig) {
   // [TODO:] refactor
   switch (sig) {
 
   case SIGHUP:
+
     config_obj = load_config_file(CONFIG_FILE);
-    //[TODO]: Add to the watch list
-    //[TODO]: Modify load_config_file() func to filter the watchlist.
-    printf("\n From SIGHUP\n");
-    for (size_t i = 0; i < config_obj->watchlist_len; i++) {
-      printf("[%ld]-Path: %s\n", i, (config_obj->watchlist[i].path));
+    if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
+                      FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                      NULL) == -1) {
+      perror("Fanotify_Mark");
+      exit(EXIT_FAILURE);
     }
+
+    printf("\n From SIGHUP\n");
+    fan_mark_wraper(fan_fd, config_obj);
     config_obj_cleanup(config_obj);
     return;
 
@@ -115,7 +121,6 @@ void signal_handler(int sig) {
       fclose(fp_log);
 
     if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
-
       if ((buffer = calloc(256, sizeof(char))) == NULL) {
         fclose(fp_log);
         perror("Fail to allocate memory");
