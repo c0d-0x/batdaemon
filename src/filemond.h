@@ -42,6 +42,6 @@ typedef struct {
 
 config_t *load_config_file(char *file_Path);
 void config_obj_cleanup(config_t *config_obj);
-void fan_event_handler(int fan_fd);
+void fan_event_handler(int fan_fd, FILE *fp_log);
 size_t check_lock(char *path_lock);
 #endif

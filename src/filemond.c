@@ -12,7 +12,6 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
-
 config_t *load_config_file(char *file_Path) {
   struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
@@ -89,7 +88,7 @@ size_t check_lock(char *path_lock) {
   return CUSTOM_ERR;
 }
 
-void fan_event_handler(int fan_fd) {
+void fan_event_handler(int fan_fd, FILE *fp_log) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {0x0};
@@ -169,7 +168,7 @@ void fan_event_handler(int fan_fd) {
         procinfo->p_event =
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
 
-        writer_log(stdout, procinfo);
+        writer_log(fp_log, procinfo);
         cleanup_procinfo(procinfo);
         close(metadata->fd);
       }

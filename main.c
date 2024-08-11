@@ -5,7 +5,7 @@
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
-FILE *fp_log = NULL;
+FILE *fp_log = NULL, *fp_tmp_log = NULL;
 int fan_fd;
 
 void signal_handler(int sig);
@@ -32,7 +32,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if ((fp_log = fopen(LOCK_FILE, "a")) == NULL) {
+  if ((fp_log = fopen(LOG_FILE, "a+")) == NULL) {
     perror("Fail to open logfile");
     exit(EXIT_FAILURE);
   }
@@ -69,7 +69,7 @@ int main(int argc, char *argv[]) {
 
     if (poll_num > 0) {
       if (fds.revents & POLLIN)
-        fan_event_handler(fan_fd);
+        fan_event_handler(fan_fd, fp_log);
     }
   }
 }
@@ -97,7 +97,6 @@ void fan_mark_wraper(int fd, config_t *config_obj) {
 }
 
 void signal_handler(int sig) {
-  // [TODO:] refactor
   switch (sig) {
 
   case SIGHUP:
@@ -110,30 +109,25 @@ void signal_handler(int sig) {
       exit(EXIT_FAILURE);
     }
 
-    printf("\n From SIGHUP\n");
     fan_mark_wraper(fan_fd, config_obj);
     config_obj_cleanup(config_obj);
     return;
 
   case SIGUSR1:
 
-    if (fp_log != NULL)
-      fclose(fp_log);
-
-    if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
+    if ((fp_tmp_log = fopen(LOG_FILE, "r")) != NULL) {
       if ((buffer = calloc(256, sizeof(char))) == NULL) {
-        fclose(fp_log);
+        fclose(fp_tmp_log);
         perror("Fail to allocate memory");
         exit(EXIT_FAILURE);
       }
 
-      while (fgets(buffer, sizeof(buffer), fp_log) != NULL) {
+      while (fgets(buffer, sizeof(buffer), fp_tmp_log) != NULL) {
         fprintf(stdout, "%s", buffer);
       }
 
-      fclose(fp_log);
+      fclose(fp_tmp_log);
       free(buffer);
-      fp_log = fopen(LOG_FILE, "a");
     } else {
       fprintf(stderr, "No File have been modified\n");
     }

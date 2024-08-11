@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define LOCK_FILE "cf.lock"
@@ -38,13 +39,10 @@ int main(int argc, char *argv[]) {
     help(argv[0]);
     return EXIT_FAILURE;
   }
-
   if (kill(pid_cruxfilemond, -sig) != 0) {
-    (errno == EPERM) ? fprintf(stderr, "Permission Required to Send Signal\n")
-                     : perror("Fail to send Signal");
+    fprintf(stderr, "Failed to send signal: %s\n", strerror(errno));
     return EXIT_FAILURE;
   }
-
   fprintf(stdout, "signal %d sent to PID: %d!!\n", -sig, pid_cruxfilemond);
   return EXIT_SUCCESS;
 }
