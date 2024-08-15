@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
+// #include "./src/daemonz.h"
 #include "./src/filemond.h"
 #include "./src/logger.h"
-#include <sys/types.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;

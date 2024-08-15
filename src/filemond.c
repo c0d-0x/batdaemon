@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+
 config_t *load_config_file(char *file_Path) {
   struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
