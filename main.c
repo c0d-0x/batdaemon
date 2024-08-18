@@ -10,19 +10,18 @@ FILE *fp_log = NULL, *fp_tmp_log = NULL;
 int fan_fd;
 
 void signal_handler(int sig);
-void fan_mark_wraper(int fd, config_t *config_obj);
+static void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
-
-  if (check_lock(LOCK_FILE) != 0) {
-    exit(EXIT_FAILURE);
-  }
 
   _daemonize();
   syslog(LOG_NOTICE, "cruxfilemond Started");
   int poll_num;
   nfds_t nfds;
   struct pollfd fds;
+  if (check_lock(LOCK_FILE) != 0) {
+    exit(EXIT_FAILURE);
+  }
 
   struct sigaction sigact;
   sigemptyset(&sigact.sa_mask);
@@ -79,7 +78,7 @@ int main(int argc, char *argv[]) {
   }
 }
 
-void fan_mark_wraper(int fd, config_t *config_obj) {
+static void fan_mark_wraper(int fd, config_t *config_obj) {
 
   size_t i = 0;
   while (i < config_obj->watchlist_len) {
@@ -96,7 +95,7 @@ void fan_mark_wraper(int fd, config_t *config_obj) {
     // for debugging and testing purposes
     // printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
     //        (config_obj->watchlist[i].F_TYPE));
-    // i++;
+    i++;
   }
 }
 
