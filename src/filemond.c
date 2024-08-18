@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
+#include <syslog.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -21,12 +22,12 @@ config_t *load_config_file(char *file_Path) {
   FILE *fp_config = NULL;
 
   if (access(file_Path, F_OK) != 0) {
-    fprintf(stderr, "Config file not found!!\n");
+    syslog(LOG_ERR, "Config file not found!!\n");
     exit(EXIT_FAILURE);
   }
 
   if ((fp_config = fopen(file_Path, "r")) == NULL) {
-    perror("Fail to open Config file\n");
+    syslog(LOG_ERR, "Fail to open Config file\n");
     return NULL;
   }
 
@@ -49,7 +50,7 @@ config_t *load_config_file(char *file_Path) {
       }
     } else {
       fclose(fp_config);
-      fprintf(stderr, "%s\n -> Invalid input from the config\n", buffer);
+      syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
       exit(EXIT_FAILURE);
     }
 
@@ -106,7 +107,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
     len = read(fan_fd, buf, sizeof(buf));
     if (len == -1 && errno != EAGAIN) {
-      perror("read");
+      syslog(LOG_ERR, "Failed to read fan_events");
       exit(EXIT_FAILURE);
     }
 
@@ -126,7 +127,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       /* Check that run-time and compile-time structures match. */
 
       if (metadata->vers != FANOTIFY_METADATA_VERSION) {
-        fprintf(stderr, "Mismatch of fanotify metadata version.\n");
+        syslog(LOG_ERR, "Mismatch of fanotify metadata version.\n");
         exit(EXIT_FAILURE);
       }
 
@@ -140,11 +141,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
           p_event = FAN_OPEN;
           proc_info(metadata->pid, buffer, 11);
 
-          /* Allow file to be opened. */
-
-          // response.fd = metadata->fd;
-          // response.response = FAN_ALLOW;
-          // write(fan_fd, &response, sizeof(response));
         } else if (metadata->mask & FAN_MODIFY) {
           p_event = FAN_MODIFY;
           proc_info(metadata->pid, buffer, 11);
@@ -156,14 +152,14 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
                  metadata->fd);
         path_len = readlink(procfd_path, path, sizeof(path) - 1);
         if (path_len == -1) {
-          perror("readlink");
+          syslog(LOG_ERR, "readlink: %s", strerror(errno));
           exit(EXIT_FAILURE);
         }
 
         path[path_len] = '\0';
 
         if ((procinfo = load_proc_info(buffer)) == NULL) {
-          fprintf(stderr, "Fail to load effective process's info\n");
+          syslog(LOG_ERR, "Fail to load effective process's info");
         }
         procinfo->file_path = path;
         procinfo->p_event =

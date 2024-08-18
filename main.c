@@ -1,7 +1,8 @@
 #define _GNU_SOURCE
-// #include "./src/daemonz.h"
+#include "./src/daemonz.h"
 #include "./src/filemond.h"
 #include "./src/logger.h"
+#include <sys/syslog.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
@@ -13,6 +14,12 @@ void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
 
+  if (check_lock(LOCK_FILE) != 0) {
+    exit(EXIT_FAILURE);
+  }
+
+  _daemonize();
+  syslog(LOG_NOTICE, "cruxfilemond Started");
   int poll_num;
   nfds_t nfds;
   struct pollfd fds;
@@ -25,29 +32,27 @@ int main(int argc, char *argv[]) {
       sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGUSR1, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
-    errx(EXIT_FAILURE, "Fail to make reception for signals\n");
-  }
-
-  if (check_lock(LOCK_FILE) != 0) {
+    syslog(LOG_ERR, "Fail to make reception for signals\n");
     exit(EXIT_FAILURE);
   }
 
   if ((fp_log = fopen(LOG_FILE, "a+")) == NULL) {
-    perror("Fail to open logfile");
+    syslog(LOG_ERR, "Fail to open logfile: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
   // fanotify for mornitoring files.
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
-    perror("Fanotify_Init Failed");
+    syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
     exit(EXIT_FAILURE);
   }
 
   config_obj = load_config_file(CONFIG_FILE);
   if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
-    errx(EXIT_SUCCESS, "%s is empty! Add files or dirs to be watched\n",
-         CONFIG_FILE);
+    syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
+           CONFIG_FILE);
+    exit(EXIT_FAILURE);
   }
 
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
@@ -63,7 +68,7 @@ int main(int argc, char *argv[]) {
       if (errno == EINTR) /* Interrupted by a signal */
         continue;         /* Restart poll() */
 
-      perror("Poll Failed"); /* Unexpected error */
+      syslog(LOG_ERR, "Poll Failed"); /* Unexpected error */
       exit(EXIT_FAILURE);
     }
 
@@ -79,20 +84,19 @@ void fan_mark_wraper(int fd, config_t *config_obj) {
   size_t i = 0;
   while (i < config_obj->watchlist_len) {
 
-    // for debugging and testing purposes
-
     if (fanotify_mark(fd,
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
                           : FAN_MARK_ADD,
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       config_obj->watchlist[i].path) == -1) {
-      perror("Fanotify_Mark");
+      syslog(LOG_ERR, "Fanotify_Mark: Failed to mark files from config");
       exit(EXIT_FAILURE);
     }
-    printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
-           (config_obj->watchlist[i].F_TYPE));
-    i++;
+    // for debugging and testing purposes
+    // printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
+    //        (config_obj->watchlist[i].F_TYPE));
+    // i++;
   }
 }
 
@@ -105,7 +109,7 @@ void signal_handler(int sig) {
     if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       NULL) == -1) {
-      perror("Fanotify_Mark");
+      syslog(LOG_ERR, "Fanotify_Mark");
       exit(EXIT_FAILURE);
     }
 
@@ -140,7 +144,8 @@ void signal_handler(int sig) {
     if (fp_log != NULL)
       fclose(fp_log);
     remove(LOCK_FILE);
-
+    syslog(LOG_NOTICE, "cruxfilemond terminated");
+    closelog();
     exit(EXIT_SUCCESS);
   }
 }

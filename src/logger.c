@@ -1,8 +1,10 @@
 #include "logger.h"
 #include "filemond.h"
 #include <err.h>
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <syslog.h>
 #include <time.h>
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
@@ -15,7 +17,7 @@ void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   snprintf(procfd_path, sizeof(procfd_path), "/proc/%d/status", pid);
   if (access(procfd_path, F_OK) == 0) {
     if ((proc_fd = fopen(procfd_path, "r")) == NULL) {
-      perror("Failed to open proc_fd");
+      syslog(LOG_ERR, "Failed to open proc_fd: %s", strerror(errno));
       return;
     }
 
@@ -46,14 +48,15 @@ proc_info_t *load_proc_info(char *buffer[]) {
   char *token;
   proc_info_t *proc_info_struct = NULL;
   if ((proc_info_struct = calloc(0x1, sizeof(proc_info_t))) == NULL) {
-    perror("Calloc Failed");
+    syslog(LOG_ERR, "Calloc Failed: %s", strerror(errno));
     return NULL;
   }
 
   while (buffer[i] != NULL && i < 11) {
     token = strtok_r(buffer[i], ":\t\r ", &saveptr);
     if (token == NULL) {
-      errx(CUSTOM_ERR, "Failed to load_proc_info\n");
+      syslog(LOG_ERR, "Failed to load_proc_info\n");
+      exit(CUSTOM_ERR);
     }
 
     // printf(" token: %s\n", token);
