@@ -2,7 +2,6 @@
 #include "./src/daemonz.h"
 #include "./src/filemond.h"
 #include "./src/logger.h"
-#include <sys/syslog.h>
 
 config_t *config_obj = NULL;
 char *buffer = NULL;
@@ -13,7 +12,10 @@ void signal_handler(int sig);
 static void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
-
+  if (getuid() != 0) {
+    fprintf(stderr, "Run %s as root!!\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
   _daemonize();
   syslog(LOG_NOTICE, "cruxfilemond Started");
   int poll_num;

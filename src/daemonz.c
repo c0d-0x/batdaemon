@@ -38,7 +38,7 @@ void _daemonize(void) {
 
   /* Change the working directory to the root directory */
   /* or another appropriated directory */
-  chdir("/home/c0d_0x/workspace/filemond/");
+  // chdir("/");
 
   /* Close all open file descriptors */
   int x;
