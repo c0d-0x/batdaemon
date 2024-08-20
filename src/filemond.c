@@ -72,14 +72,11 @@ void config_obj_cleanup(config_t *config_obj) {
 
 size_t check_lock(char *path_lock) {
   if (access(path_lock, F_OK) != 0) {
-    pid_t pid = getpid();
     FILE *fp_lock = NULL;
     if ((fp_lock = fopen(path_lock, "w")) == NULL) {
       perror("Could not create lock file");
       return CUSTOM_ERR;
     }
-    fprintf(fp_lock, "%d", pid);
-    fclose(fp_lock);
     return EXIT_SUCCESS;
   }
 

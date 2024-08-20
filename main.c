@@ -12,18 +12,28 @@ void signal_handler(int sig);
 static void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
+  FILE *fp_lock;
   if (getuid() != 0) {
     fprintf(stderr, "Run %s as root!!\n", argv[0]);
     exit(EXIT_FAILURE);
   }
+
+  if (check_lock(LOCK_FILE) != 0) {
+    exit(EXIT_FAILURE);
+  }
+
   _daemonize();
+  if ((fp_lock = fopen(LOCK_FILE, "w")) == NULL) {
+    syslog(LOG_INFO, "Failed to open %s file: %s", LOCK_FILE, strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+
+  fprintf(fp_lock, "%d", getpid());
+  fclose(fp_lock);
   syslog(LOG_NOTICE, "cruxfilemond Started");
   int poll_num;
   nfds_t nfds;
   struct pollfd fds;
-  if (check_lock(LOCK_FILE) != 0) {
-    exit(EXIT_FAILURE);
-  }
 
   struct sigaction sigact;
   sigemptyset(&sigact.sa_mask);

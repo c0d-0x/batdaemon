@@ -4,6 +4,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/syslog.h>
 #include <syslog.h>
 #include <time.h>
 
