@@ -41,7 +41,6 @@ int main(int argc, char *argv[]) {
   sigact.sa_flags = SA_RESTART;
   if (sigaction(SIGHUP, &sigact, NULL) != 0 ||
       sigaction(SIGTERM, &sigact, NULL) != 0 ||
-      sigaction(SIGUSR1, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
     syslog(LOG_ERR, "Fail to make reception for signals\n");
     exit(EXIT_FAILURE);
@@ -104,17 +103,13 @@ static void fan_mark_wraper(int fd, config_t *config_obj) {
       syslog(LOG_ERR, "Fanotify_Mark: Failed to mark files from config");
       exit(EXIT_FAILURE);
     }
-    // for debugging and testing purposes
-    // printf("[%ld]-Path: %s - %ld \n", i, (config_obj->watchlist[i].path),
-    //        (config_obj->watchlist[i].F_TYPE));
     i++;
   }
 }
 
 void signal_handler(int sig) {
-  switch (sig) {
 
-  case SIGHUP:
+  if (sig == SIGHUP) {
 
     config_obj = load_config_file(CONFIG_FILE);
     if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
@@ -126,27 +121,6 @@ void signal_handler(int sig) {
 
     fan_mark_wraper(fan_fd, config_obj);
     config_obj_cleanup(config_obj);
-    return;
-
-  case SIGUSR1:
-
-    if ((fp_tmp_log = fopen(LOG_FILE, "r")) != NULL) {
-      if ((buffer = calloc(256, sizeof(char))) == NULL) {
-        fclose(fp_tmp_log);
-        perror("Fail to allocate memory");
-        exit(EXIT_FAILURE);
-      }
-
-      while (fgets(buffer, sizeof(buffer), fp_tmp_log) != NULL) {
-        fprintf(stdout, "%s", buffer);
-      }
-
-      fclose(fp_tmp_log);
-      free(buffer);
-    } else {
-      fprintf(stderr, "No File have been modified\n");
-    }
-    return;
   }
 
   if (sig == SIGTERM || sig == SIGINT) {

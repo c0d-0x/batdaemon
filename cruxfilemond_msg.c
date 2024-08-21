@@ -6,10 +6,12 @@
 #include <stdlib.h>
 
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 
-#define CUSTOM_ERR (-1)
+#define LOG_FILE "cf.log"
 #define LOCK_FILE "cf.lock"
+#define CUSTOM_ERR (-1)
 #define UPDATE "-update-config"
 #define TERMT "-terminate"
 #define DUMP "-dump-log"
@@ -32,6 +34,28 @@ size_t option(char *opt) {
     valid_opt = SIGUSR1;
 
   return valid_opt;
+}
+
+void dump_log(void) {
+  FILE *fp_log;
+  char *buffer = NULL;
+  if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
+    if ((buffer = calloc(256, sizeof(char))) == NULL) {
+      fclose(fp_log);
+      perror("Fail to allocate memory");
+      exit(EXIT_FAILURE);
+    }
+
+    while (fgets(buffer, sizeof(buffer), fp_log) != NULL) {
+      fprintf(stdout, "%s", buffer);
+    }
+
+    fclose(fp_log);
+    free(buffer);
+  } else {
+    fprintf(stderr, "Failed to open '%s' log file: %s\n", LOG_FILE,
+            strerror(errno));
+  }
 }
 
 int main(int argc, char *argv[]) {
@@ -69,6 +93,10 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
+  if (sig_to_send == SIGUSR1) {
+    dump_log();
+    return EXIT_SUCCESS;
+  }
   if (kill(pid_cruxfilemond, sig_to_send) != 0) {
     fprintf(stderr, "Failed to send signal: %s\n", strerror(errno));
     return CUSTOM_ERR;
