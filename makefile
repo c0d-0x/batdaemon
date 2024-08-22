@@ -2,7 +2,7 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wformat-security 
 # LIBS = 
-CRX_MSG = ./cruxfilemond_msg
+CRX_MSG = cruxfilemond_ipc
 MAIN = main.c
 
 # Source and object files
