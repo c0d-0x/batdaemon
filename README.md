@@ -5,7 +5,7 @@ It provides:
 
 - Configuration-based monitoring: Users can specify files and directories to watch in a configuration file.
 - Process information: Gathers process information for file accesses.
-- Logging (TODO): Plans to log file access events for further analysis.
+- Logging: Plans to log file access events for further analysis.
 - Single instance control: Ensures only one instance of the daemon runs at a time.
 
 ## Usage
