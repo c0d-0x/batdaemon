@@ -38,4 +38,3 @@ Cruxfilemond can handle specific signals, including:
 
 - **SIGHUP:** This signal triggers Cruxfilemond to reread its configuration file and potentially reload the monitored files/directories.
 - **SIGTERM & SIGINT :** This signal instructs Cruxfilemond to terminate gracefully, cleaning up resources and exiting the process.
-- **SIGUSR1:** Upon receiving this signal, Cruxfilemond dumps its log file to the standard output (stdout).
