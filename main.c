@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include "./src/daemonz.h"
+#include "./src/debug.h"
 #include "./src/filemond.h"
 #include "./src/logger.h"
 
@@ -7,11 +8,22 @@ config_t *config_obj = NULL;
 char *buffer = NULL;
 FILE *fp_log = NULL, *fp_tmp_log = NULL;
 int fan_fd;
-
+size_t debug = 0;
+void help(char *argv);
 void signal_handler(int sig);
 static void fan_mark_wraper(int fd, config_t *config_obj);
 
 int main(int argc, char *argv[]) {
+
+  if (argc > 1) {
+    if (strncmp("-d", argv[1], 3) == 0) {
+      debug = 1;
+    } else {
+      help(argv[0]);
+      exit(EXIT_SUCCESS);
+    }
+  }
+
   FILE *fp_lock;
   if (getuid() != 0) {
     fprintf(stderr, "Run %s as root!!\n", argv[0]);
@@ -22,15 +34,22 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  _daemonize();
+  if (!debug) {
+    _daemonize();
+  }
+
+  /* Open the log file */
+  openlog("cruxfilemond", LOG_PID, LOG_DAEMON);
   if ((fp_lock = fopen(LOCK_FILE, "w")) == NULL) {
     syslog(LOG_INFO, "Failed to open %s file: %s", LOCK_FILE, strerror(errno));
+    DEBUG("Failed to open %s file:", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
   fprintf(fp_lock, "%d", getpid());
   fclose(fp_lock);
   syslog(LOG_NOTICE, "cruxfilemond Started");
+  DEBUG("cruxfilemond Started\n", NULL);
   int poll_num;
   nfds_t nfds;
   struct pollfd fds;
@@ -39,38 +58,52 @@ int main(int argc, char *argv[]) {
   sigemptyset(&sigact.sa_mask);
   sigact.sa_handler = signal_handler;
   sigact.sa_flags = SA_RESTART;
+
+  DEBUG("Making receptions for signals\n", NULL);
   if (sigaction(SIGHUP, &sigact, NULL) != 0 ||
       sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
     syslog(LOG_ERR, "Fail to make reception for signals\n");
+    DEBUG("Fail to make reception for signals\n", NULL);
     exit(EXIT_FAILURE);
   }
 
   if ((fp_log = fopen(LOG_FILE, "a+")) == NULL) {
     syslog(LOG_ERR, "Fail to open logfile: %s", strerror(errno));
+    DEBUG("Failed to open LOG_FILE\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
+  DEBUG("LOG_FILE opened\n", NULL);
+  DEBUG("initializing an Fa_Notify instance\n", NULL);
   // fanotify for mornitoring files.
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
+    DEBUG(" Failed to initializing an Fa_Notify instance\n", NULL);
     exit(EXIT_FAILURE);
   }
 
+  DEBUG("A valid Fa_Notify file descriptor: initialized\n", NULL);
+  DEBUG("Loading watchlist from the CONFIG_FILE:", CONFIG_FILE);
   config_obj = load_config_file(CONFIG_FILE);
   if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
     syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
            CONFIG_FILE);
+    DEBUG(CONFIG_FILE, "is empty! Add files or dirs to be watched\n");
     exit(EXIT_FAILURE);
   }
 
+  DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
+
+  DEBUG("watchlist clean up\n", NULL);
   config_obj_cleanup(config_obj);
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
   fds.events = POLLIN;
 
+  DEBUG("Setting up a Poll instance for the watchlist events\n", NULL);
   while (true) {
 
     poll_num = poll(&fds, nfds, -1);
@@ -79,6 +112,7 @@ int main(int argc, char *argv[]) {
         continue;         /* Restart poll() */
 
       syslog(LOG_ERR, "Poll Failed"); /* Unexpected error */
+      DEBUG("Poll Failed\n", NULL);
       exit(EXIT_FAILURE);
     }
 
@@ -101,8 +135,11 @@ static void fan_mark_wraper(int fd, config_t *config_obj) {
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       config_obj->watchlist[i].path) == -1) {
       syslog(LOG_ERR, "Fanotify_Mark: Failed to mark files from config");
+      DEBUG("Fanotify_Mark: Failed to mark files from config\n", NULL);
+
       exit(EXIT_FAILURE);
     }
+    DEBUG(config_obj->watchlist[i].path, ":Successfully added");
     i++;
   }
 }
@@ -112,6 +149,9 @@ void signal_handler(int sig) {
   if (sig == SIGHUP) {
 
     config_obj = load_config_file(CONFIG_FILE);
+    DEBUG(
+        "SIGHUP: Received\nFlushing the watchlist from the fanotify_mark fd\n",
+        NULL);
     if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       NULL) == -1) {
@@ -129,8 +169,15 @@ void signal_handler(int sig) {
     if (fp_log != NULL)
       fclose(fp_log);
     remove(LOCK_FILE);
+    DEBUG("Terminating cruxfilemond\n", NULL);
     syslog(LOG_NOTICE, "cruxfilemond terminated");
     closelog();
     exit(EXIT_SUCCESS);
   }
+}
+
+void help(char *argv) {
+  fprintf(stdout, "%s < -option >", argv);
+  fprintf(stdout, "options\n -d: debug mode will prevent cruxfilemond from as "
+                  "a daemon process\n");
 }
