@@ -4,11 +4,12 @@
 #include "./src/filemond.h"
 #include "./src/logger.h"
 
-config_t *config_obj = NULL;
-char *buffer = NULL;
-FILE *fp_log = NULL, *fp_tmp_log = NULL;
 int fan_fd;
 size_t debug = 0;
+char *buffer = NULL;
+FILE *fp_log = NULL;
+config_t *config_obj = NULL;
+
 void help(char *argv);
 void signal_handler(int sig);
 static void fan_mark_wraper(int fd, config_t *config_obj);
@@ -34,15 +35,14 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (!debug) {
+  if (!debug)
     _daemonize();
-  }
 
-  /* Open the log file */
+  /* Open the syslog file */
   openlog("cruxfilemond", LOG_PID, LOG_DAEMON);
   if ((fp_lock = fopen(LOCK_FILE, "w")) == NULL) {
     syslog(LOG_INFO, "Failed to open %s file: %s", LOCK_FILE, strerror(errno));
-    DEBUG("Failed to open %s file:", strerror(errno));
+    DEBUG("Failed to open %s file: ", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
@@ -74,18 +74,17 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  DEBUG("LOG_FILE opened\n", NULL);
-  DEBUG("initializing an Fa_Notify instance\n", NULL);
+  DEBUG("LOG_FILE opened: ", LOG_FILE);
+  DEBUG("Initializing an Fa_Notify instance\n", NULL);
   // fanotify for mornitoring files.
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
-    DEBUG(" Failed to initializing an Fa_Notify instance\n", NULL);
+    DEBUG("Failed to initializing an Fa_Notify instance", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
   DEBUG("A valid Fa_Notify file descriptor: initialized\n", NULL);
-  DEBUG("Loading watchlist from the CONFIG_FILE:", CONFIG_FILE);
   config_obj = load_config_file(CONFIG_FILE);
   if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
     syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
@@ -97,7 +96,6 @@ int main(int argc, char *argv[]) {
   DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
 
-  DEBUG("watchlist clean up\n", NULL);
   config_obj_cleanup(config_obj);
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */

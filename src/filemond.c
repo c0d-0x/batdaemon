@@ -1,20 +1,9 @@
 #include "filemond.h"
+#include "debug.h"
 #include "logger.h"
-#include <err.h>
-#include <fcntl.h>
-#include <linux/fanotify.h>
-#include <pwd.h>
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <syslog.h>
-#include <time.h>
-#include <unistd.h>
 
 config_t *load_config_file(char *file_Path) {
+  DEBUG("Loading watchlist from the CONFIG_FILE:", CONFIG_FILE);
   struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
   char buffer[PATH_MAX], *tok;
@@ -23,11 +12,13 @@ config_t *load_config_file(char *file_Path) {
 
   if (access(file_Path, F_OK) != 0) {
     syslog(LOG_ERR, "Config file not found!!\n");
+    DEBUG("Config file not found!!\n", NULL);
     exit(EXIT_FAILURE);
   }
 
   if ((fp_config = fopen(file_Path, "r")) == NULL) {
     syslog(LOG_ERR, "Fail to open Config file\n");
+    DEBUG("Fail to open Config file: ", strerror(errno));
     return NULL;
   }
 
@@ -51,6 +42,7 @@ config_t *load_config_file(char *file_Path) {
     } else {
       fclose(fp_config);
       syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
+      DEBUG(buffer, "->Invalid input from the config");
       exit(EXIT_FAILURE);
     }
 
@@ -64,6 +56,7 @@ config_t *load_config_file(char *file_Path) {
 }
 
 void config_obj_cleanup(config_t *config_obj) {
+  DEBUG("watchlist clean up\n", NULL);
   for (size_t s = 0; s < config_obj->watchlist_len; s++) {
     free(config_obj->watchlist[s].path);
   }
@@ -72,9 +65,11 @@ void config_obj_cleanup(config_t *config_obj) {
 
 size_t check_lock(char *path_lock) {
   if (access(path_lock, F_OK) != 0) {
+    DEBUG("No LOCK_FILE found: No instance of cruxfilemond running\n", NULL);
     FILE *fp_lock = NULL;
     if ((fp_lock = fopen(path_lock, "w")) == NULL) {
       perror("Could not create lock file");
+      DEBUG("Could not create lock file: ", strerror(errno));
       return CUSTOM_ERR;
     }
     return EXIT_SUCCESS;
@@ -101,15 +96,14 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   while (true) {
 
     /* Read some events. */
-
     len = read(fan_fd, buf, sizeof(buf));
     if (len == -1 && errno != EAGAIN) {
       syslog(LOG_ERR, "Failed to read fan_events");
+      DEBUG("Failed to read fan_events", NULL);
       exit(EXIT_FAILURE);
     }
 
     /* Check if end of available data reached. */
-
     if (len <= 0)
       break;
 
@@ -125,6 +119,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
       if (metadata->vers != FANOTIFY_METADATA_VERSION) {
         syslog(LOG_ERR, "Mismatch of fanotify metadata version.\n");
+        DEBUG("Mismatch of fanotify metadata version\n", NULL);
         exit(EXIT_FAILURE);
       }
 
@@ -150,6 +145,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         path_len = readlink(procfd_path, path, sizeof(path) - 1);
         if (path_len == -1) {
           syslog(LOG_ERR, "readlink: %s", strerror(errno));
+          DEBUG("readlink: ", strerror(errno));
           exit(EXIT_FAILURE);
         }
 
@@ -157,11 +153,14 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
         if ((procinfo = load_proc_info(buffer)) == NULL) {
           syslog(LOG_ERR, "Fail to load effective process's info");
+          DEBUG("Failed to load effective process's info\n", NULL);
         }
         procinfo->file_path = path;
         procinfo->p_event =
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
 
+        DEBUG("Event registered:", procinfo->p_event);
+        DEBUG(procinfo->file_path, "\n");
         writer_log(fp_log, procinfo);
         cleanup_procinfo(procinfo);
         close(metadata->fd);
