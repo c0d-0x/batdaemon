@@ -5,7 +5,7 @@ It provides:
 
 - Configuration-based monitoring: Users can specify files and directories to watch in a configuration file.
 - Process information: Gathers process information for file accesses.
-- Logging (TODO): Plans to log file access events for further analysis.
+- Logging: Plans to log file access events for further analysis.
 - Single instance control: Ensures only one instance of the daemon runs at a time.
 
 ## Usage
@@ -16,7 +16,6 @@ cruxfilemond [options]
 
 ### Options:
 
-- c `<config_file>`: Specify the configuration file path.<br>
 - d: Run in foreground for debugging.
 
 ## How it Works
@@ -39,4 +38,3 @@ Cruxfilemond can handle specific signals, including:
 
 - **SIGHUP:** This signal triggers Cruxfilemond to reread its configuration file and potentially reload the monitored files/directories.
 - **SIGTERM & SIGINT :** This signal instructs Cruxfilemond to terminate gracefully, cleaning up resources and exiting the process.
-- **SIGUSR1:** Upon receiving this signal, Cruxfilemond dumps its log file to the standard output (stdout).
