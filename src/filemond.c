@@ -87,6 +87,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {0x0};
   ssize_t len;
+  cus_stack_t *__stack = NULL;
   char path[PATH_MAX] = {0x0};
   proc_info_t *procinfo;
   ssize_t path_len, p_event;

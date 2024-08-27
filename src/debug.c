@@ -1,5 +1,4 @@
 #include "debug.h"
-#include <time.h>
 
 void DEBUG(char *debug_msg, char *debug_msg2) {
   if (debug) {

@@ -1,12 +1,5 @@
 #include "logger.h"
 #include "filemond.h"
-#include <err.h>
-#include <errno.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/syslog.h>
-#include <syslog.h>
-#include <time.h>
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};
@@ -99,6 +92,32 @@ void cleanup_procinfo(proc_info_t *procinfo) {
 
     free(procinfo);
   }
+}
+
+int push_stk(cus_stack_t **head, proc_info_t *data) {
+
+  cus_stack_t *node = NULL;
+  if ((node = (cus_stack_t *)malloc(sizeof(cus_stack_t))) == NULL) {
+    perror("Malloc Failed");
+    return -1;
+  }
+
+  node->data = data;
+  node->next = (*head);
+  (*head) = node;
+  return 0;
+}
+
+cus_stack_t *pop_head(cus_stack_t **head) {
+
+  if ((*head) == NULL) {
+    return NULL;
+  }
+
+  cus_stack_t *node = (*head);
+  (*head) = (*head)->next;
+  node->next = NULL;
+  return node;
 }
 
 static void get_locale_time(char *buf) {
