@@ -3,7 +3,7 @@
 #include "logger.h"
 
 config_t *load_config_file(char *file_Path) {
-  DEBUG("Loading watchlist from the CONFIG_FILE:", CONFIG_FILE);
+  DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
   char buffer[PATH_MAX], *tok;
@@ -57,8 +57,8 @@ config_t *load_config_file(char *file_Path) {
 
 void config_obj_cleanup(config_t *config_obj) {
   DEBUG("watchlist clean up\n", NULL);
-  for (size_t s = 0; s < config_obj->watchlist_len; s++) {
-    free(config_obj->watchlist[s].path);
+  for (size_t i = 0; i < config_obj->watchlist_len; i++) {
+    free(config_obj->watchlist[i].path);
   }
   free(config_obj);
 }
@@ -88,6 +88,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   char *buffer[11] = {0x0};
   ssize_t len;
   cus_stack_t *__stack = NULL;
+  cus_stack_t *__stack_prt = NULL;
   char path[PATH_MAX] = {0x0};
   proc_info_t *procinfo;
   ssize_t path_len, p_event;
@@ -162,13 +163,19 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
         DEBUG("Event registered:", procinfo->p_event);
         DEBUG(procinfo->file_path, "\n");
-        writer_log(fp_log, procinfo);
-        cleanup_procinfo(procinfo);
+
+        push_stk(&__stack, procinfo);
         close(metadata->fd);
       }
-
       /* Advance to next event. */
       metadata = FAN_EVENT_NEXT(metadata, len);
+    }
+
+    while (__stack != NULL) {
+      __stack_prt = pop_stk(&__stack);
+      writer_log(fp_log, __stack_prt->data);
+      cleanup_procinfo(__stack_prt->data);
+      free(__stack_prt);
     }
   }
 }

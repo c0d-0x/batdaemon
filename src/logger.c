@@ -108,7 +108,7 @@ int push_stk(cus_stack_t **head, proc_info_t *data) {
   return 0;
 }
 
-cus_stack_t *pop_head(cus_stack_t **head) {
+cus_stack_t *pop_stk(cus_stack_t **head) {
 
   if ((*head) == NULL) {
     return NULL;

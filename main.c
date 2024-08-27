@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
-    DEBUG("Failed to initializing an Fa_Notify instance", strerror(errno));
+    DEBUG("Failed to initializing an Fa_Notify instance: ", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
@@ -89,13 +89,12 @@ int main(int argc, char *argv[]) {
   if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
     syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
            CONFIG_FILE);
-    DEBUG(CONFIG_FILE, "is empty! Add files or dirs to be watched\n");
+    DEBUG(CONFIG_FILE, ": is empty! Add files or dirs to be watched\n");
     exit(EXIT_FAILURE);
   }
 
   DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
-
   config_obj_cleanup(config_obj);
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
@@ -137,7 +136,7 @@ static void fan_mark_wraper(int fd, config_t *config_obj) {
 
       exit(EXIT_FAILURE);
     }
-    DEBUG(config_obj->watchlist[i].path, ":Successfully added");
+    DEBUG(config_obj->watchlist[i].path, ": Successfully added");
     i++;
   }
 }
