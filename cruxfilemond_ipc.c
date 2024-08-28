@@ -4,17 +4,15 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 
 #define LOG_FILE "cf.log"
 #define LOCK_FILE "cf.lock"
 #define CUSTOM_ERR (-1)
-#define UPDATE "-update-config"
-#define TERMT "-terminate"
-#define DUMP "-dump-log"
+#define UPDATE "-u"
+#define TERMT "-t"
+#define DUMP "-d"
 
 void help(char *prog) {
   fprintf(stderr, "usage:%s < -option >\n", prog);
@@ -26,36 +24,30 @@ void help(char *prog) {
 
 size_t option(char *opt) {
   ssize_t valid_opt = -1;
-  if (strncmp(opt, UPDATE, strnlen(UPDATE, 15)) == 0)
+  if (strncmp(opt, UPDATE, strnlen(UPDATE, 3)) == 0)
     valid_opt = SIGHUP;
-  if (strncmp(opt, TERMT, strnlen(TERMT, 11)) == 0)
+  if (strncmp(opt, TERMT, strnlen(TERMT, 3)) == 0)
     valid_opt = SIGTERM;
-  if (strncmp(opt, DUMP, strnlen(DUMP, 10)) == 0)
+  if (strncmp(opt, DUMP, strnlen(DUMP, 3)) == 0)
     valid_opt = SIGUSR1;
 
   return valid_opt;
 }
 
 void dump_log(void) {
-  FILE *fp_log;
-  char *buffer = NULL;
-  if ((fp_log = fopen(LOG_FILE, "r")) != NULL) {
-    if ((buffer = calloc(256, sizeof(char))) == NULL) {
-      fclose(fp_log);
-      perror("Fail to allocate memory");
-      exit(EXIT_FAILURE);
-    }
-
-    while (fgets(buffer, sizeof(buffer), fp_log) != NULL) {
-      fprintf(stdout, "%s", buffer);
-    }
-
-    fclose(fp_log);
-    free(buffer);
-  } else {
+  FILE *fp_log = fopen(LOG_FILE, "rb");
+  if (!fp_log) {
     fprintf(stderr, "Failed to open '%s' log file: %s\n", LOG_FILE,
             strerror(errno));
+    return;
   }
+  while (1) {
+    int cc = getc(fp_log);
+    if (cc == EOF)
+      break;
+    putc(cc, stdout);
+  }
+  fclose(fp_log);
 }
 
 int main(int argc, char *argv[]) {
