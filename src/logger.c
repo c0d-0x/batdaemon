@@ -89,8 +89,6 @@ void cleanup_procinfo(proc_info_t *procinfo) {
       free(procinfo->State);
     if (procinfo->Umask != NULL)
       free(procinfo->Umask);
-
-    free(procinfo);
   }
 }
 
@@ -120,7 +118,7 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
   return node;
 }
 
-static void get_locale_time(char *buf) {
+void get_locale_time(char *buf) {
   if (buf == NULL)
     return;
   struct tm tm = *localtime(&(time_t){time(NULL)});
@@ -131,12 +129,11 @@ static void get_locale_time(char *buf) {
 void writer_log(FILE *log_fd, proc_info_t *procinfo) {
   get_locale_time(procinfo->timedate);
   fprintf(log_fd, "[ %s ]\n", procinfo->timedate);
-  fprintf(log_fd, "Event: %s\n", procinfo->p_event);
   fprintf(log_fd, "File: %s\n", procinfo->file_path);
+  fprintf(log_fd, "Event: %s\n", procinfo->p_event);
   fprintf(log_fd, "Effective Process: %s\n", procinfo->Name);
   fprintf(log_fd, "Effective Username: %s\n", procinfo->user_name);
   fprintf(log_fd, "Effective Process Umask: %s\n", procinfo->Umask);
   fprintf(log_fd, "Effective Process State: %s\n", procinfo->State);
-
   return;
 }

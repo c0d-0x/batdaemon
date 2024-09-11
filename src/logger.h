@@ -41,6 +41,7 @@ typedef struct node {
  * @param procinfo A pointer to the proc_info_t structure whose memory needs to
  * be freed.
  */
+void get_locale_time(char *buf);
 void cleanup_procinfo(proc_info_t *procinfo);
 int push_stk(cus_stack_t **head, proc_info_t *data);
 cus_stack_t *pop_stk(cus_stack_t **head);
