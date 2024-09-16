@@ -88,7 +88,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   char *buffer[11] = {0x0};
   ssize_t len;
   cus_stack_t *__stack = NULL;
-  cus_stack_t *__stack_prt = NULL;
+  cus_stack_t *__stack_ptr = NULL;
   char path[PATH_MAX] = {0x0};
   proc_info_t *procinfo;
   ssize_t path_len, p_event;
@@ -164,6 +164,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         DEBUG("Event registered:", procinfo->p_event);
         DEBUG(procinfo->file_path, "\n");
 
+        //[TODO]: send a notification to the system notification daemon
         push_stk(&__stack, procinfo);
         close(metadata->fd);
       }
@@ -172,10 +173,10 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     }
 
     while (__stack != NULL) {
-      __stack_prt = pop_stk(&__stack);
-      writer_log(fp_log, __stack_prt->data);
-      cleanup_procinfo(__stack_prt->data);
-      free(__stack_prt);
+      __stack_ptr = pop_stk(&__stack);
+      writer_log(fp_log, __stack_ptr->data);
+      cleanup_procinfo(__stack_ptr->data);
+      free(__stack_ptr);
     }
   }
 }

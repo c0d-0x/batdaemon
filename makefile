@@ -1,6 +1,6 @@
 # Compiler and flags
 CC = gcc
-CFLAGS = -g -Wall -Wextra -Wformat-security 
+CFLAGS = -g -Wall -Wextra -Wformat-security -pedantic
 # LIBS = 
 CRX_MSG = cruxfilemond_ipc
 MAIN = main.c
