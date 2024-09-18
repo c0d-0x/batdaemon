@@ -49,6 +49,7 @@ void proc_info(pid_t pid, char *buffer[], size_t buf_max);
 proc_info_t *load_proc_info(char *buffer[]);
 void writer_log(FILE *log_fd, proc_info_t *procinfo);
 char *get_user(const uid_t uid);
+void notify_send(proc_info_t *);
 
 #endif // !LOGGER_H
 #define LOGGER_H

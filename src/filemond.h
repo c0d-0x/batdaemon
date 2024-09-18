@@ -24,10 +24,6 @@
 #include <unistd.h>
 
 #define MAX_WATCH 200
-#define CUSTOM_ERR (-1)
-#define CONFIG_FILE "cf.config"
-#define LOG_FILE "cf.log"
-#define LOCK_FILE "cf.lock"
 #define F_IS_DIR 1
 #define F_NT_FND -1
 #define F_IS_FILE 0

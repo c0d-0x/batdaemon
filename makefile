@@ -1,6 +1,7 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wformat-security -pedantic
+CLIBNOTFY = `pkg-config --cflags --libs libnotify`
 # LIBS = 
 CRX_MSG = cruxfilemond_ipc
 MAIN = main.c
@@ -20,17 +21,17 @@ BIN = ./bin
 
 # Main target
 all: $(BIN)/cruxfilemond
-	$(CC) $(CFLAGS) $(CRX_MSG).c -o $(BIN)/$(CRX_MSG) 
+	$(CC) $(CFLAGS) $(CLIBNOTFY) $(CRX_MSG).c -o $(BIN)/$(CRX_MSG) 
 	@echo "Build Complete..."
 
 
 # Build executable
 $(BIN)/cruxfilemond: $(OBJFILES)
-	$(CC) $(CFLAGS) $(LIBS) $(MAIN) -o $@ $^
+	$(CC) $(CFLAGS) $(CLIBNOTFY) $(LIBS) $(MAIN) -o $@ $^
 
 # Compile source files
 $(OBJFILES): $(CFILES)
-	$(CC) $(CFLAGS) -c $^ 
+	$(CC) $(CFLAGS) $(CLIBNOTFY) -c $^ 
 
 # Install target
 # install: $(BIN)

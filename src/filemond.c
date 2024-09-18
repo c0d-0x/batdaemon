@@ -1,7 +1,8 @@
 #include "filemond.h"
+#include "config.h"
 #include "debug.h"
 #include "logger.h"
-
+#include "notifications.h"
 config_t *load_config_file(char *file_Path) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
@@ -165,6 +166,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         DEBUG(procinfo->file_path, "\n");
 
         //[TODO]: send a notification to the system notification daemon
+        notify_send_msg(procinfo);
         push_stk(&__stack, procinfo);
         close(metadata->fd);
       }

@@ -1,14 +1,17 @@
 #define _GNU_SOURCE
+#include "./src/config.h"
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
 #include "./src/logger.h"
+#include "./src/notifications.h"
 
 int fan_fd;
 size_t debug = 0;
 char *buffer = NULL;
 FILE *fp_log = NULL;
 config_t *config_obj = NULL;
+NotifyNotification *notify_instance;
 
 void help(char *argv);
 void signal_handler(int sig);
@@ -96,6 +99,7 @@ int main(int argc, char *argv[]) {
   DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
+  initialize_notify();
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
   fds.events = POLLIN;
@@ -168,6 +172,7 @@ void signal_handler(int sig) {
     remove(LOCK_FILE);
     DEBUG("Terminating cruxfilemond\n", NULL);
     syslog(LOG_NOTICE, "cruxfilemond terminated");
+    cleanup_notify();
     closelog();
     exit(EXIT_SUCCESS);
   }
