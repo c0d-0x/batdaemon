@@ -56,12 +56,13 @@ sudo ./cruxfilemond /path/to/directory
 Usage
 To start monitoring a directory for file access and modification events:
 
-bash
+```bash
 Copy code
 sudo ./cruxfilemond /path/to/directory
+```
 The daemon will log all file access and modification events to the console or log file (if specified).
 
-Command-Line Options
+## Command-Line Options
 -d : Run as a daemon in the background.
 -v : Verbose mode for additional logging details.
 Example:
@@ -95,8 +96,8 @@ This is done in the `./src/config.h`
 ```
 
 ```> [!CAUTION]
-> The DISPLAY environment variable specifies the X display server where graphical applications should render their output.
-> The DBUS_SESSION_BUS_ADDRESS variable defines the address of the D-Bus session bus, which allows processes to communicate with each other within the user session.
++ The DISPLAY environment variable specifies the X display server where graphical applications should render their output.
++ The DBUS_SESSION_BUS_ADDRESS variable defines the address of the D-Bus session bus, which allows processes to communicate with each other within the user session.
 ````
 
 ## Logging
