@@ -4,6 +4,7 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libnotify/notification.h>
 #include <limits.h>
 #include <linux/fanotify.h>
 #include <linux/limits.h>
@@ -23,10 +24,11 @@
 #include <time.h>
 #include <unistd.h>
 
-#define MAX_WATCH 200
 #define F_IS_DIR 1
 #define F_NT_FND -1
 #define F_IS_FILE 0
+#define MAX_WATCH 200
+#define CUSTOM_ERR (-1)
 
 // create a file to save files and dirs currently being watched.
 typedef struct {
@@ -41,6 +43,7 @@ typedef struct {
 
 config_t *load_config_file(char *file_Path);
 void config_obj_cleanup(config_t *config_obj);
-void fan_event_handler(int fan_fd, FILE *fp_log);
+void fan_event_handler(int fan_fd, FILE *fp_log,
+                       NotifyNotification *notify_instance);
 size_t check_lock(char *path_lock);
 #endif

@@ -1,4 +1,7 @@
 #include "logger.h"
+
+#include <stdio.h>
+
 #include "config.h"
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
@@ -28,10 +31,8 @@ void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
 }
 
 char *get_user(const uid_t uid) {
-
   struct passwd *pws;
-  if ((pws = getpwuid(uid)) != NULL)
-    return (pws->pw_name);
+  if ((pws = getpwuid(uid)) != NULL) return (pws->pw_name);
 
   return NULL;
 }
@@ -47,6 +48,7 @@ proc_info_t *load_proc_info(char *buffer[]) {
   }
 
   while (buffer[i] != NULL && i < 11) {
+    // printf("%s\n", buffer[i]);
     token = strtok_r(buffer[i], ":\t\r ", &saveptr);
     if (token == NULL) {
       syslog(LOG_ERR, "Failed to load_proc_info\n");
@@ -81,19 +83,14 @@ proc_info_t *load_proc_info(char *buffer[]) {
 
 void cleanup_procinfo(proc_info_t *procinfo) {
   if (procinfo != NULL) {
-    if (procinfo->user_name != NULL)
-      free(procinfo->user_name);
-    if (procinfo->Name != NULL)
-      free(procinfo->Name);
-    if (procinfo->State != NULL)
-      free(procinfo->State);
-    if (procinfo->Umask != NULL)
-      free(procinfo->Umask);
+    if (procinfo->user_name != NULL) free(procinfo->user_name);
+    if (procinfo->Name != NULL) free(procinfo->Name);
+    if (procinfo->State != NULL) free(procinfo->State);
+    if (procinfo->Umask != NULL) free(procinfo->Umask);
   }
 }
 
 int push_stk(cus_stack_t **head, proc_info_t *data) {
-
   cus_stack_t *node = NULL;
   if ((node = (cus_stack_t *)malloc(sizeof(cus_stack_t))) == NULL) {
     perror("Malloc Failed");
@@ -107,7 +104,6 @@ int push_stk(cus_stack_t **head, proc_info_t *data) {
 }
 
 cus_stack_t *pop_stk(cus_stack_t **head) {
-
   if ((*head) == NULL) {
     return NULL;
   }
@@ -119,8 +115,7 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
 }
 
 void get_locale_time(char *buf) {
-  if (buf == NULL)
-    return;
+  if (buf == NULL) return;
   struct tm tm = *localtime(&(time_t){time(NULL)});
   asctime_r(&tm, buf);
   buf[strnlen(buf, 26) - 1] = '\0';

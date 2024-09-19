@@ -1,13 +1,17 @@
+
 #define _DEFAULT_SOURCE
 #include "notifications.h"
-#include "config.h"
-#include "debug.h"
+
 #include <libnotify/notification.h>
 #include <libnotify/notify.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
+
+#include "config.h"
+#include "debug.h"
+#include "filemond.h"
 
 // void notify_send_msg(proc_info_t *procinfo) {
 //   NotifyNotification *notify_instance =
@@ -50,10 +54,9 @@ static char *get_user_env_var(const char *username, const char *var_name) {
   }
 
   pclose(fp);
-  result[strcspn(result, "\n")] = 0; // Remove newline
+  result[strcspn(result, "\n")] = 0;  // Remove newline
   return result;
 }
-
 void initialize_notify(void) {
   if (!notify_is_initted()) {
     // Get user information
@@ -96,53 +99,61 @@ void initialize_notify(void) {
       DEBUG("Failed to initialize libnotify\n", NULL);
       exit(EXIT_FAILURE);
     }
+    notify_instance = notify_notification_new("Cruxfilemond Event", NULL,
+                                              "dialog-information");
+  }
+  if (notify_instance == NULL) {
+    fprintf(stderr, "Fail to create a notification instance\n");
+    exit(CUSTOM_ERR);
   }
 }
 
-// from chatGPT
-
-void notify_send_msg(proc_info_t *procinfo) {
-  initialize_notify();
-  char *file_name = NULL;
-  char buff[32] = {0};
-  file_name = strdup(strrchr(procinfo->file_path, '/'));
-  printf("%s", file_name);
-  if (file_name == NULL) {
-    DEBUG("Failed to catch valid a file name\n", NULL);
-    exit(EXIT_FAILURE);
-  }
-
-  sprintf(buff, "%s: %s", procinfo->p_event, file_name);
-  NotifyNotification *notify_instance =
-      notify_notification_new("Cruxfilemond Event", buff, "dialog-information");
-
+void notify_send_msg(proc_info_t *procinfo,
+                     NotifyNotification *notify_instance) {
   if (notify_instance == NULL) {
     DEBUG("Failed to create a notify instance\n", NULL);
-    kill(getpid(), SIGTERM);
-  } else {
-    GError *error = NULL;
-    // notify_notification_update(notify_instance, procinfo->p_event,
-    //                            "Check cf.log for Cruxfilemond event",
-    //                            "dialog-information");
-    notify_notification_set_urgency(notify_instance, NOTIFY_URGENCY_NORMAL);
-
-    if (!notify_notification_show(notify_instance, &error)) {
-      if (error != NULL) {
-        DEBUG("Error showing notification: %s\n", error->message);
-        g_error_free(error);
-      }
-    }
-
-    // Cleanup
-
-    g_object_unref(G_OBJECT(notify_instance));
+    kill(getpid(), SIGTERM);  // Terminates the process safely on failure
+    return;  // Ensure function exits if kill doesn't stop the process
   }
 
-  // notify_uninit();  // Uninitialize libnotify
+  char *file_name = NULL;
+  char buff[32] = {0};
+
+  // Ensure that procinfo->file_path is not NULL before attempting to use it
+  if (procinfo == NULL || procinfo->file_path == NULL) {
+    DEBUG("Invalid procinfo or file path\n", NULL);
+    kill(getpid(), SIGTERM);  // Terminates the process safely on failure
+  }
+
+  // Extract the filename from the path without modifying the original string
+  file_name = strrchr(procinfo->file_path, '/');
+  if (file_name == NULL) {
+    DEBUG("Failed to extract a valid file name from the path\n", NULL);
+    kill(getpid(), SIGTERM);  // Terminates the process safely on failure
+  }
+
+  // Securely construct the message, avoiding potential buffer overflows
+  snprintf(buff, sizeof(buff), "%s: %s", procinfo->p_event, file_name + 1);
+
+  GError *error = NULL;
+  notify_notification_update(notify_instance, buff,
+                             "Check cf.log for Cruxfilemond event",
+                             "dialog-information");
+  notify_notification_set_urgency(notify_instance, NOTIFY_URGENCY_NORMAL);
+
+  if (!notify_notification_show(notify_instance, &error)) {
+    if (error != NULL) {
+      DEBUG("Error showing notification: %s\n", error->message);
+      g_error_free(error);      // Free the error object
+      error = NULL;             // Reset error to avoid double-free issues
+      kill(getpid(), SIGTERM);  // Terminates the process safely on failure
+    }
+  }
 }
 
-void cleanup_notify() {
+void cleanup_notify(NotifyNotification *notify_instance) {
   if (notify_is_initted()) {
     notify_uninit();
+    g_object_unref(G_OBJECT(notify_instance));
   }
 }
