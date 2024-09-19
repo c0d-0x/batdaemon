@@ -162,10 +162,6 @@ Cruxfilemond is optimized for lightweight monitoring of directories. For larger 
 - Enhancing logging to support custom formats and integration with syslog or SIEM systems.
 - Feel free to fork the repository, submit issues, or create pull requests.
 
-## License
-
-Cruxfilemond is released under the MIT License.
-
 ## Future Work
 
 Here’s a glimpse of upcoming features and enhancements:
