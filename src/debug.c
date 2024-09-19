@@ -1,7 +1,9 @@
 #include "debug.h"
-#include "logger.h"
+
 #include <string.h>
 #include <time.h>
+
+#include "logger.h"
 void DEBUG(char *debug_msg, char *debug_msg2) {
   if (debug) {
     char time_str[26];

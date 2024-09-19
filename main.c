@@ -1,31 +1,25 @@
 #define _GNU_SOURCE
+#include "./src/config.h"
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
-#include "./src/logger.h"
+#include "./src/notifications.h"
 
 int fan_fd;
 size_t debug = 0;
-char *buffer = NULL;
-FILE *fp_log = NULL;
-config_t *config_obj = NULL;
+char* buffer = NULL;
+FILE* fp_log = NULL;
+config_t* config_obj = NULL;
+NotifyNotification* notify_instance;
 
-void help(char *argv);
+void help(char* argv);
 void signal_handler(int sig);
-static void fan_mark_wraper(int fd, config_t *config_obj);
+static void fan_mark_wraper(int fd, config_t* config_obj);
+static void check_options(const int argc, char* argv[]);
 
-int main(int argc, char *argv[]) {
-
-  if (argc > 1) {
-    if (strncmp("-d", argv[1], 3) == 0) {
-      debug = 1;
-    } else {
-      help(argv[0]);
-      exit(EXIT_SUCCESS);
-    }
-  }
-
-  FILE *fp_lock;
+int main(int argc, char* argv[]) {
+  FILE* fp_lock;
+  check_options(argc, argv);
   if (getuid() != 0) {
     fprintf(stderr, "Run %s as root!!\n", argv[0]);
     exit(EXIT_FAILURE);
@@ -35,8 +29,7 @@ int main(int argc, char *argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (!debug)
-    _daemonize();
+  if (!debug) _daemonize();
 
   /* Open the syslog file */
   openlog("cruxfilemond", LOG_PID, LOG_DAEMON);
@@ -96,13 +89,13 @@ int main(int argc, char *argv[]) {
   DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
+  initialize_notify();
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
   fds.events = POLLIN;
 
   DEBUG("Setting up a Poll instance for the watchlist events\n", NULL);
   while (true) {
-
     poll_num = poll(&fds, nfds, -1);
     if (poll_num == -1) {
       if (errno == EINTR) /* Interrupted by a signal */
@@ -115,16 +108,14 @@ int main(int argc, char *argv[]) {
 
     if (poll_num > 0) {
       if (fds.revents & POLLIN)
-        fan_event_handler(fan_fd, fp_log);
+        fan_event_handler(fan_fd, fp_log, notify_instance);
     }
   }
 }
 
-static void fan_mark_wraper(int fd, config_t *config_obj) {
-
+static void fan_mark_wraper(int fd, config_t* config_obj) {
   size_t i = 0;
   while (i < config_obj->watchlist_len) {
-
     if (fanotify_mark(fd,
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
@@ -142,9 +133,7 @@ static void fan_mark_wraper(int fd, config_t *config_obj) {
 }
 
 void signal_handler(int sig) {
-
   if (sig == SIGHUP) {
-
     config_obj = load_config_file(CONFIG_FILE);
     DEBUG(
         "SIGHUP: Received\nFlushing the watchlist from the fanotify_mark fd\n",
@@ -161,20 +150,31 @@ void signal_handler(int sig) {
   }
 
   if (sig == SIGTERM || sig == SIGINT) {
-
     // necessary clean up then exit
-    if (fp_log != NULL)
-      fclose(fp_log);
+    if (fp_log != NULL) fclose(fp_log);
     remove(LOCK_FILE);
     DEBUG("Terminating cruxfilemond\n", NULL);
     syslog(LOG_NOTICE, "cruxfilemond terminated");
+    cleanup_notify(notify_instance);
     closelog();
     exit(EXIT_SUCCESS);
   }
 }
 
-void help(char *argv) {
+void help(char* argv) {
   fprintf(stdout, "%s < -option >", argv);
-  fprintf(stdout, "options\n -d: debug mode will prevent cruxfilemond from as "
-                  "a daemon process\n");
+  fprintf(stdout,
+          "options\n -d: debug mode will prevent cruxfilemond from as "
+          "a daemon process\n");
+}
+
+static void check_options(const int argc, char* argv[]) {
+  if (argc > 1) {
+    if (strncmp("-d", argv[1], 3) == 0) {
+      debug = 1;
+    } else {
+      help(argv[0]);
+      exit(EXIT_SUCCESS);
+    }
+  }
 }

@@ -1,7 +1,12 @@
 #include "filemond.h"
+
+#include <libnotify/notification.h>
+
+#include "config.h"
 #include "debug.h"
 #include "logger.h"
-
+#include "notifications.h"
+// NotifyNotification *notify_instance;
 config_t *load_config_file(char *file_Path) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
@@ -25,7 +30,6 @@ config_t *load_config_file(char *file_Path) {
   config_obj = malloc(sizeof(config_t));
   while (fgets(buffer, sizeof(buffer), fp_config) != NULL && errno != EOF &&
          i < MAX_WATCH) {
-
     if ((tok = strchr(buffer, '\n')) != NULL) {
       index_n = tok - buffer;
       buffer[index_n] = '\0';
@@ -82,7 +86,8 @@ size_t check_lock(char *path_lock) {
   return CUSTOM_ERR;
 }
 
-void fan_event_handler(int fan_fd, FILE *fp_log) {
+void fan_event_handler(int fan_fd, FILE *fp_log,
+                       NotifyNotification *notify_instance) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {0x0};
@@ -96,7 +101,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   // struct fanotify_response response;
 
   while (true) {
-
     /* Read some events. */
     len = read(fan_fd, buf, sizeof(buf));
     if (len == -1 && errno != EAGAIN) {
@@ -106,8 +110,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     }
 
     /* Check if end of available data reached. */
-    if (len <= 0)
-      break;
+    if (len <= 0) break;
 
     /* Point to the first event in the buffer. */
 
@@ -116,7 +119,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     /* Loop over all events in the buffer. */
 
     while (FAN_EVENT_OK(metadata, len)) {
-
       /* Check that run-time and compile-time structures match. */
 
       if (metadata->vers != FANOTIFY_METADATA_VERSION) {
@@ -165,6 +167,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         DEBUG(procinfo->file_path, "\n");
 
         //[TODO]: send a notification to the system notification daemon
+        notify_send_msg(procinfo, notify_instance);
         push_stk(&__stack, procinfo);
         close(metadata->fd);
       }
