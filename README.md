@@ -75,7 +75,7 @@ sudo ./bin/cruxfilemond -d
 
 This is done in the `./src/config.h`
 
-````c
+```c
 
 /* Replace with your USERNAME.
  *  libnotify uses D-Bus to communicate with the user's desktop session, which typically runs under a non-root user.
