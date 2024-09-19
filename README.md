@@ -87,7 +87,7 @@ This is done in the `./src/config.h`
 
 
 #define USERNAME "username"
-#define CONFIG_FILE "cf.config"
+#define CONFIG_FILE "cf.config" /* Files or dirs do be watched in here- No spaces*/
 #define LOG_FILE "cf.log"
 #define LOCK_FILE "cf.lock"
 #define CF_HOME_DIR
