@@ -128,7 +128,7 @@ Cruxfilemond responds to the following signals:
 
 ```bash
 Copy code
-sudo ./bin/cruxfilemond_ipc -u # This is a wrapper to kill that sends SIGHUP
+sudo ./bin/cruxfilemond_ipc -u # This is a wrapper to kill that sends SIGHUP, SIGTERM, and dumps cruxfilemond log_file
 ```
 
 ## How it Works
