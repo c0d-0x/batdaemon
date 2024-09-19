@@ -7,7 +7,7 @@ Cruxfilemond is a lightweight file system monitoring daemon built for Linux usin
 Monitors file access and modification events in real time using fanotify.
 Supports logging of basic file events (read, write) with timestamps.
 Gracefully handles signals like SIGHUP (reload configuration) and SIGTERM (terminate daemon).
-Simple configuration via command-line options.
+Simple configuration via a `config.h` header
 
 ## Upcoming Features
 
