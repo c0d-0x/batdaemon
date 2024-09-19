@@ -92,7 +92,7 @@ This is done in the `./src/config.h`
 #define CF_HOME_DIR
 
 
-<!-- ``` -->
+```
 
 ```> [!CAUTION]
 > The DISPLAY environment variable specifies the X display server where graphical applications should render their output.
