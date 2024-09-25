@@ -174,3 +174,4 @@ Here’s a glimpse of upcoming features and enhancements:
 ## Contact
 
 For any questions, feel free to reach out through the repository's issues page or email: c0d-0x@proton.me
+### NB: This project is currently under development.
