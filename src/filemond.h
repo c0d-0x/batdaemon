@@ -4,7 +4,6 @@
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <libnotify/notification.h>
 #include <limits.h>
 #include <linux/fanotify.h>
 #include <linux/limits.h>
@@ -43,7 +42,6 @@ typedef struct {
 
 config_t *load_config_file(char *file_Path);
 void config_obj_cleanup(config_t *config_obj);
-void fan_event_handler(int fan_fd, FILE *fp_log,
-                       NotifyNotification *notify_instance);
+void fan_event_handler(int fan_fd, FILE *fp_log);
 size_t check_lock(char *path_lock);
 #endif

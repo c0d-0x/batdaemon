@@ -3,7 +3,7 @@
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
-#include "./src/notifications.h"
+#include "./src/notify.h"
 
 int fan_fd;
 size_t debug = 0;
@@ -25,10 +25,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if (check_lock(LOCK_FILE) != 0) {
-    exit(EXIT_FAILURE);
-  }
-
+  if (check_lock(LOCK_FILE) != 0) exit(EXIT_FAILURE);
   if (!debug) _daemonize();
 
   /* Open the syslog file */
@@ -89,7 +86,7 @@ int main(int argc, char* argv[]) {
   DEBUG("Marking watchlist for mornitoring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
-  initialize_notify();
+  initialize_notify("cruxfilemond", NULL, NOTIFY_EXPIRES_DEFAULT);
   nfds = 1;
   fds.fd = fan_fd; /* Fanotify input */
   fds.events = POLLIN;
@@ -107,8 +104,7 @@ int main(int argc, char* argv[]) {
     }
 
     if (poll_num > 0) {
-      if (fds.revents & POLLIN)
-        fan_event_handler(fan_fd, fp_log, notify_instance);
+      if (fds.revents & POLLIN) fan_event_handler(fan_fd, fp_log);
     }
   }
 }
@@ -155,7 +151,7 @@ void signal_handler(int sig) {
     remove(LOCK_FILE);
     DEBUG("Terminating cruxfilemond\n", NULL);
     syslog(LOG_NOTICE, "cruxfilemond terminated");
-    cleanup_notify(notify_instance);
+    cleanup_notify();
     closelog();
     exit(EXIT_SUCCESS);
   }

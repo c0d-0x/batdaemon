@@ -1,9 +1,9 @@
-
 #define _DEFAULT_SOURCE
-#include "notifications.h"
+#include "notify.h"
 
 #include <libnotify/notification.h>
 #include <libnotify/notify.h>
+#include <pwd.h>
 #include <signal.h>
 #include <string.h>
 #include <time.h>
@@ -12,29 +12,33 @@
 #include "config.h"
 #include "debug.h"
 #include "filemond.h"
+#include "logger.h"
+
+// static char* notification_icon;
+static NotifyNotification* notification;
 
 // void notify_send_msg(proc_info_t *procinfo) {
-//   NotifyNotification *notify_instance =
+//   NotifyNotification *notification =
 //       notify_notification_new(NULL, NULL, "dialog-information");
 //
-//   if (notify_instance == NULL) {
+//   if (notification == NULL) {
 //     DEBUG("Fail to create a notify instance\n", NULL);
 //     kill(getpid(), SIGTERM);
 //   }
-//   notify_notification_update(notify_instance, procinfo->p_event,
+//   notify_notification_update(notification, procinfo->p_event,
 //                              "Check cf.log for Cruxfilemond event",
 //                              "dialog-information");
-//   notify_notification_set_urgency(notify_instance, NOTIFY_URGENCY_NORMAL);
-//   notify_notification_show(notify_instance, NULL);
+//   notify_notification_set_urgency(notification, NOTIFY_URGENCY_NORMAL);
+//   notify_notification_show(notification, NULL);
 //
 //   // Cleaning up
-//   g_object_unref(G_OBJECT(notify_instance));
+//   g_object_unref(G_OBJECT(notification));
 // }
 //
 
-static char *get_user_env_var(const char *username, const char *var_name) {
+static char* get_user_env_var(const char* username, const char* var_name) {
   char command[256] = {0x0};
-  FILE *fp;
+  FILE* fp;
   static char result[1024] = {0x0};
 
   snprintf(command, sizeof(command),
@@ -57,10 +61,11 @@ static char *get_user_env_var(const char *username, const char *var_name) {
   result[strcspn(result, "\n")] = 0;  // Remove newline
   return result;
 }
-void initialize_notify(void) {
+
+void initialize_notify(char* appname, char* icon, size_t expires) {
   if (!notify_is_initted()) {
     // Get user information
-    struct passwd *pw = getpwnam(USERNAME);
+    struct passwd* pw = getpwnam(USERNAME);
     if (pw == NULL) {
       fprintf(stderr, "User %s not found.\n", USERNAME);
       exit(CUSTOM_ERR);
@@ -72,8 +77,8 @@ void initialize_notify(void) {
 
     // Get the DISPLAY and DBUS_SESSION_BUS_ADDRESS environment variables for
     // the user
-    char *display = get_user_env_var(USERNAME, "DISPLAY");
-    char *dbus_session = get_user_env_var(USERNAME, "DBUS_SESSION_BUS_ADDRESS");
+    char* display = get_user_env_var(USERNAME, "DISPLAY");
+    char* dbus_session = get_user_env_var(USERNAME, "DBUS_SESSION_BUS_ADDRESS");
 
     if (display == NULL || dbus_session == NULL) {
       fprintf(stderr, "Failed to get environment variables for user %s.\n",
@@ -82,8 +87,8 @@ void initialize_notify(void) {
     }
 
     // Print the extracted environment variables for debugging purposes
-    printf("DISPLAY=%s\n", display);
-    printf("DBUS_SESSION_BUS_ADDRESS=%s\n", dbus_session);
+    DEBUG("DISPLAY-> ", display);
+    DEBUG("DBUS_SESSION_BUS_ADDRESS-> ", dbus_session);
 
     // Set the environment variables for the root process
     setenv("DISPLAY", display, 1);
@@ -99,24 +104,30 @@ void initialize_notify(void) {
       DEBUG("Failed to initialize libnotify\n", NULL);
       exit(EXIT_FAILURE);
     }
-    notify_instance = notify_notification_new("Cruxfilemond Event", NULL,
-                                              "dialog-information");
+
+    if (!notify_init(appname))
+      err(EXIT_FAILURE, "Failed to initialize notifications");
+    notification = notify_notification_new("", NULL, icon);
+    notify_notification_set_timeout(notification, expires);
   }
-  if (notify_instance == NULL) {
-    fprintf(stderr, "Fail to create a notification instance\n");
-    exit(CUSTOM_ERR);
-  }
+  // if (notification == NULL) {
+  //   fprintf(stderr, "Fail to create a notification instance\n");
+  //   exit(CUSTOM_ERR);
+  // }
 }
 
-void notify_send_msg(proc_info_t *procinfo,
-                     NotifyNotification *notify_instance) {
-  if (notify_instance == NULL) {
+// static char * get_file_name(char * file_path){
+// TODO: extracts a file name from a file path
+// }
+
+void notify_send_msg(proc_info_t* procinfo, ssize_t ugency) {
+  if (notification == NULL) {
     DEBUG("Failed to create a notify instance\n", NULL);
     kill(getpid(), SIGTERM);  // Terminates the process safely on failure
     return;  // Ensure function exits if kill doesn't stop the process
   }
 
-  char *file_name = NULL;
+  char* file_name = NULL;
   char buff[32] = {0};
 
   // Ensure that procinfo->file_path is not NULL before attempting to use it
@@ -132,16 +143,14 @@ void notify_send_msg(proc_info_t *procinfo,
     kill(getpid(), SIGTERM);  // Terminates the process safely on failure
   }
 
-  // Securely construct the message, avoiding potential buffer overflows
   snprintf(buff, sizeof(buff), "%s: %s", procinfo->p_event, file_name + 1);
-
-  GError *error = NULL;
-  notify_notification_update(notify_instance, buff,
+  GError* error = NULL;
+  notify_notification_update(notification, buff,
                              "Check cf.log for Cruxfilemond event",
                              "dialog-information");
-  notify_notification_set_urgency(notify_instance, NOTIFY_URGENCY_NORMAL);
 
-  if (!notify_notification_show(notify_instance, &error)) {
+  notify_notification_set_urgency(notification, ugency);
+  if (!notify_notification_show(notification, &error)) {
     if (error != NULL) {
       DEBUG("Error showing notification: %s\n", error->message);
       g_error_free(error);      // Free the error object
@@ -151,9 +160,11 @@ void notify_send_msg(proc_info_t *procinfo,
   }
 }
 
-void cleanup_notify(NotifyNotification *notify_instance) {
+void close_notification(void) { notify_notification_close(notification, NULL); }
+
+void cleanup_notify() {
   if (notify_is_initted()) {
+    g_object_unref(G_OBJECT(notification));
     notify_uninit();
-    g_object_unref(G_OBJECT(notify_instance));
   }
 }
