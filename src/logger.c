@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "config.h"
+// #include "config.h"
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};

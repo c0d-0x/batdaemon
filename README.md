@@ -34,14 +34,12 @@ Support for nested directory monitoring.
 Clone the repository:
 
 ```bash
-Copy code
 git clone https://github.com/c0d-0x/cruxfilemond.git
 ```
 
 ### Build the project:
 
 ```bash
-Copy code
 cd cruxfilemond
 make
 ```
@@ -49,7 +47,6 @@ make
 ### Run the daemon with required permissions (root access required for fanotify):
 
 ```bash
-Copy code
 sudo ./cruxfilemond /path/to/directory
 ```
 
@@ -57,7 +54,6 @@ Usage
 To start monitoring a directory for file access and modification events:
 
 ```bash
-Copy code
 sudo ./cruxfilemond /path/to/directory
 ```
 The daemon will log all file access and modification events to the console or log file (if specified).
@@ -68,7 +64,6 @@ The daemon will log all file access and modification events to the console or lo
 Example:
 
 ```bash
-Copy code
 sudo ./bin/cruxfilemond -d
 ```
 
@@ -98,7 +93,7 @@ This is done in the `./src/config.h`
 ```> [!CAUTION]
 + The DISPLAY environment variable specifies the X display server where graphical applications should render their output.
 + The DBUS_SESSION_BUS_ADDRESS variable defines the address of the D-Bus session bus, which allows processes to communicate with each other within the user session.
-````
+```
 
 ## Logging
 
@@ -127,7 +122,6 @@ Cruxfilemond responds to the following signals:
 ## To reload the daemon without restarting:
 
 ```bash
-Copy code
 sudo ./bin/cruxfilemond_ipc -u # This is a wrapper to kill that sends SIGHUP, SIGTERM, and dumps cruxfilemond log_file
 ```
 

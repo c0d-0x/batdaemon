@@ -1,12 +1,9 @@
 #include "filemond.h"
 
-#include <libnotify/notification.h>
-
 #include "config.h"
 #include "debug.h"
 #include "logger.h"
-#include "notifications.h"
-// NotifyNotification *notify_instance;
+
 config_t *load_config_file(char *file_Path) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
@@ -86,8 +83,7 @@ size_t check_lock(char *path_lock) {
   return CUSTOM_ERR;
 }
 
-void fan_event_handler(int fan_fd, FILE *fp_log,
-                       NotifyNotification *notify_instance) {
+void fan_event_handler(int fan_fd, FILE *fp_log) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {0x0};
@@ -166,8 +162,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log,
         DEBUG("Event registered:", procinfo->p_event);
         DEBUG(procinfo->file_path, "\n");
 
-        //[TODO]: send a notification to the system notification daemon
-        notify_send_msg(procinfo, notify_instance);
         push_stk(&__stack, procinfo);
         close(metadata->fd);
       }
@@ -178,8 +172,8 @@ void fan_event_handler(int fan_fd, FILE *fp_log,
     while (__stack != NULL) {
       __stack_ptr = pop_stk(&__stack);
       writer_log(fp_log, __stack_ptr->data);
-      cleanup_procinfo(__stack_ptr->data);
-      free(__stack_ptr);
+      //[TODO]: send a notification to the system notification daemon
+      free(__stack_ptr->data);
     }
   }
 }
