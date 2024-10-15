@@ -37,8 +37,8 @@ static NotifyNotification* notification;
 //
 
 static char* get_user_env_var(const char* username, const char* var_name) {
-  char command[256] = {0x0};
   FILE* fp;
+  char command[256] = {0x0};
   static char result[1024] = {0x0};
 
   snprintf(command, sizeof(command),
@@ -105,15 +105,13 @@ void initialize_notify(char* appname, char* icon, size_t expires) {
       exit(EXIT_FAILURE);
     }
 
-    if (!notify_init(appname))
-      err(EXIT_FAILURE, "Failed to initialize notifications");
     notification = notify_notification_new("", NULL, icon);
+    if (notification == NULL) {
+      fprintf(stderr, "Fail to create a notification instance\n");
+      exit(CUSTOM_ERR);
+    }
     notify_notification_set_timeout(notification, expires);
   }
-  // if (notification == NULL) {
-  //   fprintf(stderr, "Fail to create a notification instance\n");
-  //   exit(CUSTOM_ERR);
-  // }
 }
 
 // static char * get_file_name(char * file_path){
@@ -144,23 +142,16 @@ void notify_send_msg(proc_info_t* procinfo, ssize_t ugency) {
   }
 
   snprintf(buff, sizeof(buff), "%s: %s", procinfo->p_event, file_name + 1);
-  GError* error = NULL;
   notify_notification_update(notification, buff,
                              "Check cf.log for Cruxfilemond event",
                              "dialog-information");
 
   notify_notification_set_urgency(notification, ugency);
-  if (!notify_notification_show(notification, &error)) {
-    if (error != NULL) {
-      DEBUG("Error showing notification: %s\n", error->message);
-      g_error_free(error);      // Free the error object
-      error = NULL;             // Reset error to avoid double-free issues
+  if (!notify_notification_show(notification, NULL)) {
       kill(getpid(), SIGTERM);  // Terminates the process safely on failure
-    }
   }
 }
 
-void close_notification(void) { notify_notification_close(notification, NULL); }
 
 void cleanup_notify() {
   if (notify_is_initted()) {

@@ -3,8 +3,7 @@
 #include "config.h"
 #include "debug.h"
 #include "logger.h"
-#include "notify.h"
-// NotifyNotification *notify_instance;
+
 config_t *load_config_file(char *file_Path) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
@@ -174,10 +173,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       __stack_ptr = pop_stk(&__stack);
       writer_log(fp_log, __stack_ptr->data);
       //[TODO]: send a notification to the system notification daemon
-      notify_send_msg(__stack_ptr->data, NOTIFY_URGENCY_NORMAL);
-      cleanup_procinfo(__stack_ptr->data);
-      free(__stack_ptr);
+      free(__stack_ptr->data);
     }
   }
-  close_notification();
 }
