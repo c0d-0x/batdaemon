@@ -172,8 +172,9 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     while (__stack != NULL) {
       __stack_ptr = pop_stk(&__stack);
       writer_log(fp_log, __stack_ptr->data);
-      //[TODO]: send a notification to the system notification daemon
-      free(__stack_ptr->data);
+      cleanup_procinfo(__stack_ptr->data);
     }
   }
+  /*flushing the file buffer, after writing.*/
+  fflush(fp_log);
 }

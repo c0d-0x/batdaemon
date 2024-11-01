@@ -6,5 +6,6 @@
 #define LOG_FILE "cf.log"
 #define LOCK_FILE "cf.lock"
 #define CF_HOME_DIR
+#define VERSION 1.1
 
 #endif  // !CONFIG_H

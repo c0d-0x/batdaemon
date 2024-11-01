@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include "json_gen.h"
+
 // #include "config.h"
 
 void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
@@ -114,15 +116,31 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
   return node;
 }
 
-void get_locale_time(char *buf) {
-  if (buf == NULL) return;
+void get_locale_time(char *buffer) {
+  if (buffer == NULL) return;
   struct tm tm = *localtime(&(time_t){time(NULL)});
-  asctime_r(&tm, buf);
-  buf[strnlen(buf, 26) - 1] = '\0';
+  asctime_r(&tm, buffer);
+  buffer[strnlen(buffer, 26) - 1] = '\0';
+}
+
+/*functions from my json_generator lib.*/
+static void json_constructor(FILE *json_fp, json_obj_t json_obj) {
+  if (json_fp != NULL) {
+    fputs("{", json_fp);
+    fprintf(json_fp, "\"date\":\"%s\",", json_obj.date);
+    fprintf(json_fp, "\"file\":\"%s\",", json_obj.file);
+    fprintf(json_fp, "\"e_process\":\"%s\" ,", json_obj.e_process);
+    fprintf(json_fp, "\"e_p_event\":\"%s\",", json_obj.e_p_event);
+    fprintf(json_fp, "\"e_p_state\":\"%s\",", json_obj.e_p_state);
+    fprintf(json_fp, "\"e_username\":\"%s\"", json_obj.e_username);
+    fputs("}", json_fp);
+  }
 }
 
 void writer_log(FILE *log_fd, proc_info_t *procinfo) {
   get_locale_time(procinfo->timedate);
+  /*[TODO]: write loges in json format.*/
+  /*append_to_file(log_fd, json_obj, json_constructor);*/
   fprintf(log_fd, "[ %s ]\n", procinfo->timedate);
   fprintf(log_fd, "File: %s\n", procinfo->file_path);
   fprintf(log_fd, "Event: %s\n", procinfo->p_event);

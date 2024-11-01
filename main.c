@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
-#include "./src/config.h"
+#include "./src/main.h"
+
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
