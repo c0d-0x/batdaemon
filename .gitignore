@@ -1,6 +1,7 @@
 main
 *.o
 *.log
+*.json
 *.lock
 *.config
 .idea
