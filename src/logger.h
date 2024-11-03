@@ -11,16 +11,7 @@
 #include <time.h>
 
 #include "filemond.h"
-
-typedef struct {
-  char *p_event;
-  char timedate[26];
-  char *file_path; /* accessed file path*/
-  char *Name;
-  char *Umask;
-  char *State;
-  char *user_name;
-} proc_info_t;
+#include "json_gen.h"
 
 /**
  * Custom stack for temporally
@@ -28,7 +19,7 @@ typedef struct {
  * */
 
 typedef struct node {
-  proc_info_t *data;
+  json_obj_t *data;
   struct node *next;
 } cus_stack_t;
 
@@ -43,13 +34,11 @@ typedef struct node {
  * be freed.
  */
 void get_locale_time(char *buf);
-void cleanup_procinfo(proc_info_t *procinfo);
-int push_stk(cus_stack_t **head, proc_info_t *data);
+void cleanup_procinfo(json_obj_t *json_obj);
+int push_stk(cus_stack_t **head, json_obj_t *data);
 cus_stack_t *pop_stk(cus_stack_t **head);
 void proc_info(pid_t pid, char *buffer[], size_t buf_max);
-proc_info_t *load_proc_info(char *buffer[]);
-void writer_log(FILE *log_fd, proc_info_t *procinfo);
+json_obj_t *tokenizer(char *buffer[]);
 char *get_user(const uid_t uid);
-void notify_send(proc_info_t *);
 
 #endif  // !LOGGER_H

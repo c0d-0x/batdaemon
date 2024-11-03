@@ -3,7 +3,7 @@
 
 #define USERNAME "c0d_0x" /*replace with your username*/
 #define CONFIG_FILE "cf.config"
-#define LOG_FILE "cf.log"
+#define LOG_FILE "cf_log.json"
 #define LOCK_FILE "cf.lock"
 #define CF_HOME_DIR
 #define VERSION 1.1

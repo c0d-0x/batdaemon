@@ -1,8 +1,9 @@
 #include "filemond.h"
 
-#include "config.h"
 #include "debug.h"
+#include "json_gen.h"
 #include "logger.h"
+#include "main.h"
 
 config_t *load_config_file(char *file_Path) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
@@ -91,7 +92,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   cus_stack_t *__stack = NULL;
   cus_stack_t *__stack_ptr = NULL;
   char path[PATH_MAX] = {0x0};
-  proc_info_t *procinfo;
+  json_obj_t *json_obj;
   ssize_t path_len, p_event;
   char procfd_path[PATH_MAX] = {0x0};
   // struct fanotify_response response;
@@ -151,18 +152,19 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
         path[path_len] = '\0';
 
-        if ((procinfo = load_proc_info(buffer)) == NULL) {
+        if ((json_obj = tokenizer(buffer)) == NULL) {
           syslog(LOG_ERR, "Fail to load effective process's info");
           DEBUG("Failed to load effective process's info\n", NULL);
         }
-        procinfo->file_path = path;
-        procinfo->p_event =
+        json_obj->file = path;
+        json_obj->e_p_event =
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
+        get_locale_time(json_obj->date);
 
-        DEBUG("Event registered:", procinfo->p_event);
-        DEBUG(procinfo->file_path, "\n");
+        DEBUG("Event registered:", json_obj->e_p_event);
+        DEBUG(json_obj->file, "\n");
 
-        push_stk(&__stack, procinfo);
+        push_stk(&__stack, json_obj);
         close(metadata->fd);
       }
       /* Advance to next event. */
@@ -171,8 +173,10 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
     while (__stack != NULL) {
       __stack_ptr = pop_stk(&__stack);
-      writer_log(fp_log, __stack_ptr->data);
+      /*writer_log(gfp_log, __stack_ptr->data);*/
+      append_to_file(fp_log, json_obj, json_constructor);
       cleanup_procinfo(__stack_ptr->data);
+      free(__stack_ptr);
     }
   }
   /*flushing the file buffer, after writing.*/

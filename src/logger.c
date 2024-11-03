@@ -39,60 +39,60 @@ char *get_user(const uid_t uid) {
   return NULL;
 }
 
-proc_info_t *load_proc_info(char *buffer[]) {
+json_obj_t *tokenizer(char *buffer[]) {
   size_t i = 0;
   char *saveptr;
   char *token;
-  proc_info_t *proc_info_struct = NULL;
-  if ((proc_info_struct = calloc(0x1, sizeof(proc_info_t))) == NULL) {
+  json_obj_t *json_obj = NULL;
+  if ((json_obj = calloc(0x1, sizeof(json_obj_t))) == NULL) {
     syslog(LOG_ERR, "Calloc Failed: %s", strerror(errno));
     return NULL;
   }
 
   while (buffer[i] != NULL && i < 11) {
-    // printf("%s\n", buffer[i]);
+    printf("%s\n", buffer[i]);
     token = strtok_r(buffer[i], ":\t\r ", &saveptr);
     if (token == NULL) {
       syslog(LOG_ERR, "Failed to load_proc_info\n");
       exit(CUSTOM_ERR);
     }
 
-    // printf(" token: %s\n", token);
+    printf(" token: %s\n", token);
     if (strncmp(token, "Name", sizeof("Name")) == 0) {
-      token = strtok_r(NULL, " ", &saveptr);
-      proc_info_struct->Name = strdup(token);
+      token = strtok_r(NULL, "\t ", &saveptr);
+      json_obj->e_process = strdup(token);
     }
 
     if (strncmp(token, "Umask", sizeof("Umask")) == 0) {
-      token = strtok_r(NULL, " ", &saveptr);
-      proc_info_struct->Umask = strdup(token);
+      token = strtok_r(NULL, "\t ", &saveptr);
+      json_obj->e_p_Umask = strdup(token);
     }
 
     if (strncmp(token, "State", sizeof("State")) == 0) {
-      token = strtok_r(NULL, " ", &saveptr);
-      proc_info_struct->State = strdup(saveptr);
+      token = strtok_r(NULL, "\t ", &saveptr);
+      json_obj->e_p_state = strdup(saveptr);
     }
 
     if (strncmp(token, "Uid", sizeof("Uid")) == 0) {
-      token = strtok_r(NULL, " ", &saveptr);
-      proc_info_struct->user_name = strdup(get_user(atoi(token)));
+      token = strtok_r(NULL, "\t", &saveptr);
+      json_obj->e_username = strdup(get_user(atoi(token)));
     }
     free(buffer[i]);
     i++;
   }
-  return proc_info_struct;
+  return json_obj;
 }
 
-void cleanup_procinfo(proc_info_t *procinfo) {
-  if (procinfo != NULL) {
-    if (procinfo->user_name != NULL) free(procinfo->user_name);
-    if (procinfo->Name != NULL) free(procinfo->Name);
-    if (procinfo->State != NULL) free(procinfo->State);
-    if (procinfo->Umask != NULL) free(procinfo->Umask);
+void cleanup_procinfo(json_obj_t *json_obj) {
+  if (json_obj != NULL) {
+    if (json_obj->e_username != NULL) free(json_obj->e_username);
+    if (json_obj->e_process != NULL) free(json_obj->e_process);
+    if (json_obj->e_p_state != NULL) free(json_obj->e_p_state);
+    if (json_obj->e_p_Umask != NULL) free(json_obj->e_p_Umask);
   }
 }
 
-int push_stk(cus_stack_t **head, proc_info_t *data) {
+int push_stk(cus_stack_t **head, json_obj_t *data) {
   cus_stack_t *node = NULL;
   if ((node = (cus_stack_t *)malloc(sizeof(cus_stack_t))) == NULL) {
     perror("Malloc Failed");
@@ -121,32 +121,4 @@ void get_locale_time(char *buffer) {
   struct tm tm = *localtime(&(time_t){time(NULL)});
   asctime_r(&tm, buffer);
   buffer[strnlen(buffer, 26) - 1] = '\0';
-}
-
-/*functions from my json_generator lib.*/
-static void json_constructor(FILE *json_fp, json_obj_t json_obj) {
-  if (json_fp != NULL) {
-    fputs("{", json_fp);
-    fprintf(json_fp, "\"date\":\"%s\",", json_obj.date);
-    fprintf(json_fp, "\"file\":\"%s\",", json_obj.file);
-    fprintf(json_fp, "\"e_process\":\"%s\" ,", json_obj.e_process);
-    fprintf(json_fp, "\"e_p_event\":\"%s\",", json_obj.e_p_event);
-    fprintf(json_fp, "\"e_p_state\":\"%s\",", json_obj.e_p_state);
-    fprintf(json_fp, "\"e_username\":\"%s\"", json_obj.e_username);
-    fputs("}", json_fp);
-  }
-}
-
-void writer_log(FILE *log_fd, proc_info_t *procinfo) {
-  get_locale_time(procinfo->timedate);
-  /*[TODO]: write loges in json format.*/
-  /*append_to_file(log_fd, json_obj, json_constructor);*/
-  fprintf(log_fd, "[ %s ]\n", procinfo->timedate);
-  fprintf(log_fd, "File: %s\n", procinfo->file_path);
-  fprintf(log_fd, "Event: %s\n", procinfo->p_event);
-  fprintf(log_fd, "Effective Process: %s\n", procinfo->Name);
-  fprintf(log_fd, "Effective Username: %s\n", procinfo->user_name);
-  fprintf(log_fd, "Effective Process Umask: %s\n", procinfo->Umask);
-  fprintf(log_fd, "Effective Process State: %s\n", procinfo->State);
-  return;
 }

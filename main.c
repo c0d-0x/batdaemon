@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  if ((fp_log = fopen(LOG_FILE, "a+")) == NULL) {
+  if ((fp_log = fopen(LOG_FILE, "w+")) == NULL) {
     syslog(LOG_ERR, "Fail to open logfile: %s", strerror(errno));
     DEBUG("Failed to open LOG_FILE\n", strerror(errno));
     exit(EXIT_FAILURE);
