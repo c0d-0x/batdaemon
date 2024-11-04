@@ -5,7 +5,7 @@
 #include "logger.h"
 #include "main.h"
 
-config_t *load_config_file(char *file_Path) {
+config_t *parse_config_file(int config_fd) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
   struct stat path_stat;
   size_t i = 0, index_n = -1, F_Flag;
@@ -13,13 +13,13 @@ config_t *load_config_file(char *file_Path) {
   config_t *config_obj;
   FILE *fp_config = NULL;
 
-  if (access(file_Path, F_OK) != 0) {
+  if (access(CONFIG_FILE, F_OK) != 0) {
     syslog(LOG_ERR, "Config file not found!!\n");
     DEBUG("Config file not found!!\n", NULL);
     exit(EXIT_FAILURE);
   }
 
-  if ((fp_config = fopen(file_Path, "r")) == NULL) {
+  if ((fp_config = fdopen(config_fd, "r")) == NULL) {
     syslog(LOG_ERR, "Fail to open Config file\n");
     DEBUG("Fail to open Config file: ", strerror(errno));
     return NULL;

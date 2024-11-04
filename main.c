@@ -1,14 +1,17 @@
 #define _GNU_SOURCE
 #include "./src/main.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
 
-int fan_fd;
 size_t debug = 0;
 char* buffer = NULL;
 FILE* fp_log = NULL;
+int fan_fd, config_fd;
 config_t* config_obj = NULL;
 
 void help(char* argv);
@@ -17,7 +20,12 @@ static void fan_mark_wraper(int fd, config_t* config_obj);
 static void load_options(const int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
+  nfds_t nfds;
+  int poll_num;
   FILE* fp_lock;
+  struct pollfd fds[2];
+  struct sigaction sigact;
+
   load_options(argc, argv);
   if (getuid() != 0) {
     fprintf(stderr, "Run %s as root!!\n", argv[0]);
@@ -39,18 +47,19 @@ int main(int argc, char* argv[]) {
   fclose(fp_lock);
   syslog(LOG_NOTICE, "cruxfilemond Started");
   DEBUG("cruxfilemond Started\n", NULL);
-  int poll_num;
-  nfds_t nfds;
-  struct pollfd fds;
 
-  struct sigaction sigact;
+  config_fd = open(CONFIG_FILE, O_RDONLY);
+  if (config_fd == -1) {
+    DEBUG("Failed to open the config file: ", CONFIG_FILE);
+    EXIT_FAILURE;
+  }
+
   sigemptyset(&sigact.sa_mask);
   sigact.sa_handler = signal_handler;
   sigact.sa_flags = SA_RESTART;
 
   DEBUG("Making receptions for signals\n", NULL);
-  if (sigaction(SIGHUP, &sigact, NULL) != 0 ||
-      sigaction(SIGTERM, &sigact, NULL) != 0 ||
+  if (sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
     syslog(LOG_ERR, "Fail to make reception for signals\n");
     DEBUG("Fail to make reception for signals\n", NULL);
@@ -74,7 +83,7 @@ int main(int argc, char* argv[]) {
   }
 
   DEBUG("A valid Fa_Notify file descriptor: initialized\n", NULL);
-  config_obj = load_config_file(CONFIG_FILE);
+  config_obj = parse_config_file(config_fd);
   if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
     syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
            CONFIG_FILE);
@@ -85,13 +94,16 @@ int main(int argc, char* argv[]) {
   DEBUG("Marking watchlist for mornitoexadecimal number of oring\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
-  nfds = 1;
-  fds.fd = fan_fd; /* Fanotify input */
-  fds.events = POLLIN;
+  nfds = 2;
+  fds[0].fd = fan_fd; /* Fanotify input */
+  fds[0].events = POLLIN;
+
+  fds[1].fd = config_fd; /* Fanotify input */
+  fds[1].events = POLLIN;
 
   DEBUG("Setting up a Poll instance for the watchlist events\n", NULL);
   while (true) {
-    poll_num = poll(&fds, nfds, -1);
+    poll_num = poll(fds, nfds, -1);
     if (poll_num == -1) {
       if (errno == EINTR) /* Interrupted by a signal */
         continue;         /* Restart poll() */
@@ -102,7 +114,25 @@ int main(int argc, char* argv[]) {
     }
 
     if (poll_num > 0) {
-      if (fds.revents & POLLIN) fan_event_handler(fan_fd, fp_log);
+      if (fds[0].revents & POLLIN) fan_event_handler(fan_fd, fp_log);
+
+      if (fds[1].revents & POLLIN) {
+        config_obj = parse_config_file(config_fd);
+        DEBUG(
+            "CONFIG_FILE edited:\nFlushing the watchlist from the "
+            "fanotify_mark "
+            "fd\n",
+            NULL);
+        if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
+                          FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                          NULL) == -1) {
+          syslog(LOG_ERR, "Fanotify_Mark");
+          exit(EXIT_FAILURE);
+        }
+
+        fan_mark_wraper(fan_fd, config_obj);
+        config_obj_cleanup(config_obj);
+      }
     }
   }
 }
@@ -127,26 +157,11 @@ static void fan_mark_wraper(int fd, config_t* config_obj) {
 }
 
 void signal_handler(int sig) {
-  if (sig == SIGHUP) {
-    config_obj = load_config_file(CONFIG_FILE);
-    DEBUG(
-        "SIGHUP: Received\nFlushing the watchlist from the fanotify_mark fd\n",
-        NULL);
-    if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
-                      FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
-                      NULL) == -1) {
-      syslog(LOG_ERR, "Fanotify_Mark");
-      exit(EXIT_FAILURE);
-    }
-
-    fan_mark_wraper(fan_fd, config_obj);
-    config_obj_cleanup(config_obj);
-  }
-
   if (sig == SIGTERM || sig == SIGINT) {
     // necessary clean up then exit
     if (fp_log != NULL) fclose(fp_log);
     remove(LOCK_FILE);
+    close(config_fd);
     DEBUG("Terminating cruxfilemond\n", NULL);
     syslog(LOG_NOTICE, "cruxfilemond terminated");
     closelog();

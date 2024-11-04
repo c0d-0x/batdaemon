@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/fanotify.h>
+#include <sys/poll.h>
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <sys/types.h>
@@ -40,7 +41,7 @@ typedef struct {
   watch_t watchlist[MAX_WATCH];
 } config_t;
 
-config_t *load_config_file(char *file_Path);
+config_t *parse_config_file(int config_fd);
 void config_obj_cleanup(config_t *config_obj);
 void fan_event_handler(int fan_fd, FILE *fp_log);
 size_t check_lock(char *path_lock);
