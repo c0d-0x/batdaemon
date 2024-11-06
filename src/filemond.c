@@ -1,5 +1,9 @@
 #include "filemond.h"
 
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
 #include "debug.h"
 #include "json_gen.h"
 #include "logger.h"
@@ -7,11 +11,11 @@
 
 config_t *parse_config_file(int config_fd) {
   DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
+  char CC;
   struct stat path_stat;
-  size_t i = 0, index_n = -1, F_Flag;
-  char buffer[PATH_MAX], *tok;
+  size_t i = 0, F_Flag, watch_len = 0;
+  char buffer[PATH_MAX];
   config_t *config_obj;
-  FILE *fp_config = NULL;
 
   if (access(CONFIG_FILE, F_OK) != 0) {
     syslog(LOG_ERR, "Config file not found!!\n");
@@ -19,41 +23,42 @@ config_t *parse_config_file(int config_fd) {
     exit(EXIT_FAILURE);
   }
 
-  if ((fp_config = fdopen(config_fd, "r")) == NULL) {
-    syslog(LOG_ERR, "Fail to open Config file\n");
-    DEBUG("Fail to open Config file: ", strerror(errno));
-    return NULL;
+  if ((config_obj = malloc(sizeof(config_t))) == NULL) {
+    DEBUG("Failed to Allocate memory: Malloc\n", NULL);
+    exit(EXIT_FAILURE);
   }
 
-  config_obj = malloc(sizeof(config_t));
-  while (fgets(buffer, sizeof(buffer), fp_config) != NULL && errno != EOF &&
-         i < MAX_WATCH) {
-    if ((tok = strchr(buffer, '\n')) != NULL) {
-      index_n = tok - buffer;
-      buffer[index_n] = '\0';
+  while (read(config_fd, &CC, sizeof(char)) > 0 && watch_len < MAX_WATCH) {
+    if (errno == EAGAIN) {
+      free(config_obj);
+      return NULL;
     }
-
-    if (stat(buffer, &path_stat) == 0) {
-      if (path_stat.st_mode & S_IFDIR) {
-        F_Flag = F_IS_DIR;
-      } else if (path_stat.st_mode & S_IFREG) {
-        F_Flag = F_IS_FILE;
+    if (CC == '\n') {
+      printf("CC: %X\n", CC);
+      buffer[i] = '\0';
+      i = 0;
+      if (stat(buffer, &path_stat) == 0) {
+        if (path_stat.st_mode & S_IFDIR) {
+          F_Flag = F_IS_DIR;
+        } else if (path_stat.st_mode & S_IFREG) {
+          F_Flag = F_IS_FILE;
+        } else {
+          continue;
+        }
       } else {
-        continue;
+        syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
+        DEBUG(buffer, "->Invalid input from the config");
+        free(config_obj);
+        return NULL;
       }
-    } else {
-      fclose(fp_config);
-      syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
-      DEBUG(buffer, "->Invalid input from the config");
-      exit(EXIT_FAILURE);
-    }
 
-    config_obj->watchlist_len = i + 1;
-    config_obj->watchlist[i].F_TYPE = F_Flag;
-    (config_obj->watchlist[i].path) = strdup(buffer);
-    i++;
+      config_obj->watchlist_len = watch_len;
+      config_obj->watchlist[watch_len].F_TYPE = F_Flag;
+      (config_obj->watchlist[watch_len].path) = strdup(buffer);
+      watch_len++;
+    } else
+      buffer[i++] = CC;
   }
-  fclose(fp_config);
   return config_obj;
 }
 
@@ -156,6 +161,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
           syslog(LOG_ERR, "Fail to load effective process's info");
           DEBUG("Failed to load effective process's info\n", NULL);
         }
+
         json_obj->file = path;
         json_obj->e_p_event =
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
@@ -173,7 +179,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
     while (__stack != NULL) {
       __stack_ptr = pop_stk(&__stack);
-      /*writer_log(gfp_log, __stack_ptr->data);*/
       append_to_file(fp_log, json_obj, json_constructor);
       cleanup_procinfo(__stack_ptr->data);
       free(__stack_ptr);

@@ -48,7 +48,7 @@ int main(int argc, char* argv[]) {
   syslog(LOG_NOTICE, "cruxfilemond Started");
   DEBUG("cruxfilemond Started\n", NULL);
 
-  config_fd = open(CONFIG_FILE, O_RDONLY);
+  config_fd = open(CONFIG_FILE, O_RDONLY | O_NONBLOCK);
   if (config_fd == -1) {
     DEBUG("Failed to open the config file: ", CONFIG_FILE);
     EXIT_FAILURE;
@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  DEBUG("Marking watchlist for mornitoexadecimal number of oring\n", NULL);
+  DEBUG("Marking watchlist to the fanotify maker func\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
   nfds = 2;
@@ -117,7 +117,7 @@ int main(int argc, char* argv[]) {
       if (fds[0].revents & POLLIN) fan_event_handler(fan_fd, fp_log);
 
       if (fds[1].revents & POLLIN) {
-        config_obj = parse_config_file(config_fd);
+        if ((config_obj = parse_config_file(config_fd)) == NULL) continue;
         DEBUG(
             "CONFIG_FILE edited:\nFlushing the watchlist from the "
             "fanotify_mark "
@@ -127,6 +127,7 @@ int main(int argc, char* argv[]) {
                           FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                           NULL) == -1) {
           syslog(LOG_ERR, "Fanotify_Mark");
+          DEBUG("Fanotify_Mark: Failed!!!\n", NULL);
           exit(EXIT_FAILURE);
         }
 
@@ -140,6 +141,7 @@ int main(int argc, char* argv[]) {
 static void fan_mark_wraper(int fd, config_t* config_obj) {
   size_t i = 0;
   while (i < config_obj->watchlist_len) {
+    DEBUG(config_obj->watchlist[i].path, ": adding");
     if (fanotify_mark(fd,
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
