@@ -84,7 +84,8 @@ int main(int argc, char* argv[]) {
 
   DEBUG("A valid Fa_Notify file descriptor: initialized\n", NULL);
   config_obj = parse_config_file(config_fd);
-  if (config_obj->watchlist_len == 0 || config_obj->watchlist->path == NULL) {
+  if (config_obj == NULL || config_obj->watchlist_len == 0 ||
+      config_obj->watchlist->path == NULL) {
     syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
            CONFIG_FILE);
     DEBUG(CONFIG_FILE, ": is empty! Add files or dirs to be watched\n");
@@ -94,6 +95,7 @@ int main(int argc, char* argv[]) {
   DEBUG("Marking watchlist to the fanotify maker func\n", NULL);
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
+  /*pause();*/
   nfds = 2;
   fds[0].fd = fan_fd; /* Fanotify input */
   fds[0].events = POLLIN;

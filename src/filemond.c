@@ -1,5 +1,8 @@
 #include "filemond.h"
 
+#include <ctype.h>
+#include <linux/limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -10,33 +13,27 @@
 #include "main.h"
 
 config_t *parse_config_file(int config_fd) {
-  DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);
+  /*DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);*/
+
   char CC;
   struct stat path_stat;
-  size_t i = 0, F_Flag, watch_len = 0;
+  size_t i = 0, F_Flag, watch_len = 0, read_len;
   char buffer[PATH_MAX];
   config_t *config_obj;
 
-  if (access(CONFIG_FILE, F_OK) != 0) {
-    syslog(LOG_ERR, "Config file not found!!\n");
-    DEBUG("Config file not found!!\n", NULL);
-    exit(EXIT_FAILURE);
-  }
-
-  if ((config_obj = malloc(sizeof(config_t))) == NULL) {
+  if (lseek(config_fd, 0, SEEK_SET) == -1) return NULL;
+  if ((config_obj = calloc(0x1, sizeof(config_t))) == NULL) {
     DEBUG("Failed to Allocate memory: Malloc\n", NULL);
     exit(EXIT_FAILURE);
   }
 
-  while (read(config_fd, &CC, sizeof(char)) > 0 && watch_len < MAX_WATCH) {
-    if (errno == EAGAIN) {
-      free(config_obj);
-      return NULL;
+  while (watch_len < MAX_WATCH) {
+    read_len = read(config_fd, &CC, sizeof(char));
+    if (read_len == 0) {
+      break;
     }
+    if (isspace(CC) && i == 0) continue;
     if (CC == '\n') {
-      printf("CC: %X\n", CC);
-      buffer[i] = '\0';
-      i = 0;
       if (stat(buffer, &path_stat) == 0) {
         if (path_stat.st_mode & S_IFDIR) {
           F_Flag = F_IS_DIR;
@@ -47,17 +44,22 @@ config_t *parse_config_file(int config_fd) {
         }
       } else {
         syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
-        DEBUG(buffer, "->Invalid input from the config");
+        DEBUG(buffer, " ->Invalid input from the config");
         free(config_obj);
         return NULL;
       }
 
-      config_obj->watchlist_len = watch_len;
-      config_obj->watchlist[watch_len].F_TYPE = F_Flag;
+      i = 0;
       (config_obj->watchlist[watch_len].path) = strdup(buffer);
-      watch_len++;
+      config_obj->watchlist[watch_len].F_TYPE = F_Flag;
+      config_obj->watchlist_len = ++watch_len;
+      memset(buffer, '\0', strnlen(buffer, PATH_MAX));
     } else
       buffer[i++] = CC;
+  }
+  if (config_obj->watchlist_len == 0) {
+    free(config_obj);
+    return NULL;
   }
   return config_obj;
 }
