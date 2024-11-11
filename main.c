@@ -7,12 +7,12 @@
 #include "./src/daemonz.h"
 #include "./src/debug.h"
 #include "./src/filemond.h"
+#include "src/inotify.h"
 
-size_t debug = 0;
-char* buffer = NULL;
+int config_fd;
 FILE* fp_log = NULL;
-int fan_fd, config_fd;
 config_t* config_obj = NULL;
+size_t debug = 0;
 
 void help(char* argv);
 void signal_handler(int sig);
@@ -20,9 +20,10 @@ static void fan_mark_wraper(int fd, config_t* config_obj);
 static void load_options(const int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
-  nfds_t nfds;
-  int poll_num;
   FILE* fp_lock;
+  int fan_fd, inotify_fd;
+  int poll_num;
+  nfds_t nfds;
   struct pollfd fds[2];
   struct sigaction sigact;
 
@@ -48,12 +49,6 @@ int main(int argc, char* argv[]) {
   syslog(LOG_NOTICE, "cruxfilemond Started");
   DEBUG("cruxfilemond Started\n", NULL);
 
-  config_fd = open(CONFIG_FILE, O_RDONLY | O_NONBLOCK);
-  if (config_fd == -1) {
-    DEBUG("Failed to open the config file: ", CONFIG_FILE);
-    EXIT_FAILURE;
-  }
-
   sigemptyset(&sigact.sa_mask);
   sigact.sa_handler = signal_handler;
   sigact.sa_flags = SA_RESTART;
@@ -64,6 +59,12 @@ int main(int argc, char* argv[]) {
     syslog(LOG_ERR, "Fail to make reception for signals\n");
     DEBUG("Fail to make reception for signals\n", NULL);
     exit(EXIT_FAILURE);
+  }
+
+  config_fd = open(CONFIG_FILE, O_RDONLY | O_NONBLOCK);
+  if (config_fd == -1) {
+    DEBUG("Failed to open the config file: ", CONFIG_FILE);
+    EXIT_FAILURE;
   }
 
   if ((fp_log = fopen(LOG_FILE, "w+")) == NULL) {
@@ -79,6 +80,12 @@ int main(int argc, char* argv[]) {
   if (fan_fd == -1) {
     syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
     DEBUG("Failed to initializing an Fa_Notify instance: ", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+
+  /*Watch the config file for changes*/
+  inotify_fd = init_inotify(CONFIG_FILE);
+  if (inotify_fd == -1) {
     exit(EXIT_FAILURE);
   }
 
@@ -100,7 +107,7 @@ int main(int argc, char* argv[]) {
   fds[0].fd = fan_fd; /* Fanotify input */
   fds[0].events = POLLIN;
 
-  fds[1].fd = config_fd; /* Fanotify input */
+  fds[1].fd = inotify_fd; /* inotify input */
   fds[1].events = POLLIN;
 
   DEBUG("Setting up a Poll instance for the watchlist events\n", NULL);
@@ -119,7 +126,9 @@ int main(int argc, char* argv[]) {
       if (fds[0].revents & POLLIN) fan_event_handler(fan_fd, fp_log);
 
       if (fds[1].revents & POLLIN) {
-        if ((config_obj = parse_config_file(config_fd)) == NULL) continue;
+        if ((config_obj = inotify_event_handler(inotify_fd, config_fd,
+                                                parse_config_file)) == NULL)
+          continue;
         DEBUG(
             "CONFIG_FILE edited:\nFlushing the watchlist from the "
             "fanotify_mark "
