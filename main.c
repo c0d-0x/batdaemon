@@ -17,7 +17,7 @@ size_t debug = 0;
 void help(char* argv);
 void signal_handler(int sig);
 static void fan_mark_wraper(int fd, config_t* config_obj);
-static void load_options(const int argc, char* argv[]);
+static void parse_options(const int argc, char* argv[]);
 
 int main(int argc, char* argv[]) {
   FILE* fp_lock;
@@ -27,7 +27,7 @@ int main(int argc, char* argv[]) {
   struct pollfd fds[2];
   struct sigaction sigact;
 
-  load_options(argc, argv);
+  parse_options(argc, argv);
   if (getuid() != 0) {
     fprintf(stderr, "Run %s as root!!\n", argv[0]);
     exit(EXIT_FAILURE);
@@ -36,50 +36,43 @@ int main(int argc, char* argv[]) {
   if (check_lock(LOCK_FILE) != 0) exit(EXIT_FAILURE);
   if (!debug) _daemonize();
 
-  /* Open the syslog file */
-  openlog("cruxfilemond", LOG_PID, LOG_DAEMON);
   if ((fp_lock = fopen(LOCK_FILE, "w")) == NULL) {
-    syslog(LOG_INFO, "Failed to open %s file: %s", LOCK_FILE, strerror(errno));
-    DEBUG("Failed to open %s file: ", strerror(errno));
+    DEBUG("Failed to open %s file: %s", LOG_FILE, strerror(errno));
     exit(EXIT_FAILURE);
   }
 
   fprintf(fp_lock, "%d", getpid());
   fclose(fp_lock);
-  syslog(LOG_NOTICE, "cruxfilemond Started");
-  DEBUG("cruxfilemond Started\n", NULL);
+  DEBUG("cruxfilemond Started");
 
   sigemptyset(&sigact.sa_mask);
   sigact.sa_handler = signal_handler;
   sigact.sa_flags = SA_RESTART;
 
-  DEBUG("Making receptions for signals\n", NULL);
+  DEBUG("Making receptions for signals");
   if (sigaction(SIGTERM, &sigact, NULL) != 0 ||
       sigaction(SIGINT, &sigact, NULL) != 0) {
-    syslog(LOG_ERR, "Fail to make reception for signals\n");
-    DEBUG("Fail to make reception for signals\n", NULL);
+    DEBUG("Fail to make reception for signals");
     exit(EXIT_FAILURE);
   }
 
   config_fd = open(CONFIG_FILE, O_RDONLY | O_NONBLOCK);
   if (config_fd == -1) {
-    DEBUG("Failed to open the config file: ", CONFIG_FILE);
+    DEBUG("Failed to open the config file: %s", CONFIG_FILE);
     EXIT_FAILURE;
   }
 
   if ((fp_log = fopen(LOG_FILE, "w+")) == NULL) {
-    syslog(LOG_ERR, "Fail to open logfile: %s", strerror(errno));
-    DEBUG("Failed to open LOG_FILE\n", strerror(errno));
+    DEBUG("Failed to open LOG_FILE: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
-  DEBUG("LOG_FILE opened: ", LOG_FILE);
-  DEBUG("Initializing an Fa_Notify instance\n", NULL);
+  DEBUG("LOG_FILE opened: %s", LOG_FILE);
+  DEBUG("Initializing an Fa_Notify instance");
   // fanotify for mornitoring files.
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
-    syslog(LOG_ERR, "Fanotify_Init Failed to initialize");
-    DEBUG("Failed to initializing an Fa_Notify instance: ", strerror(errno));
+    DEBUG("Failed to initializing an Fa_Notify instance: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
 
@@ -89,17 +82,15 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
 
-  DEBUG("A valid Fa_Notify file descriptor: initialized\n", NULL);
+  DEBUG("A valid Fa_Notify file descriptor: initialized");
   config_obj = parse_config_file(config_fd);
   if (config_obj == NULL || config_obj->watchlist_len == 0 ||
       config_obj->watchlist->path == NULL) {
-    syslog(LOG_ERR, "%s is empty! Add files or dirs to be watched",
-           CONFIG_FILE);
-    DEBUG(CONFIG_FILE, ": is empty! Add files or dirs to be watched\n");
+    DEBUG("%s :is empty! Add files or dirs to be watched", CONFIG_FILE);
     exit(EXIT_FAILURE);
   }
 
-  DEBUG("Marking watchlist to the fanotify maker func\n", NULL);
+  DEBUG("Marking watchlist to the fanotify maker func");
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
   /*pause();*/
@@ -110,15 +101,14 @@ int main(int argc, char* argv[]) {
   fds[1].fd = inotify_fd; /* inotify input */
   fds[1].events = POLLIN;
 
-  DEBUG("Setting up a Poll instance for the watchlist events\n", NULL);
+  DEBUG("Setting up a Poll instance for the watchlist events");
   while (true) {
     poll_num = poll(fds, nfds, -1);
     if (poll_num == -1) {
       if (errno == EINTR) /* Interrupted by a signal */
         continue;         /* Restart poll() */
 
-      syslog(LOG_ERR, "Poll Failed"); /* Unexpected error */
-      DEBUG("Poll Failed\n", NULL);
+      DEBUG("Poll Failed");
       exit(EXIT_FAILURE);
     }
 
@@ -130,15 +120,13 @@ int main(int argc, char* argv[]) {
                                                 parse_config_file)) == NULL)
           continue;
         DEBUG(
-            "CONFIG_FILE edited:\nFlushing the watchlist from the "
-            "fanotify_mark "
-            "fd\n",
-            NULL);
+            "CONFIG_FILE :%s edited\nFlushing the watchlist from the "
+            "fanotify_markfd",
+            CONFIG_FILE);
         if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
                           FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                           NULL) == -1) {
-          syslog(LOG_ERR, "Fanotify_Mark");
-          DEBUG("Fanotify_Mark: Failed!!!\n", NULL);
+          DEBUG("Fanotify_Mark: Failed!!!");
           exit(EXIT_FAILURE);
         }
 
@@ -152,19 +140,17 @@ int main(int argc, char* argv[]) {
 static void fan_mark_wraper(int fd, config_t* config_obj) {
   size_t i = 0;
   while (i < config_obj->watchlist_len) {
-    DEBUG(config_obj->watchlist[i].path, ": adding");
     if (fanotify_mark(fd,
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
                           : FAN_MARK_ADD,
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       config_obj->watchlist[i].path) == -1) {
-      syslog(LOG_ERR, "Fanotify_Mark: Failed to mark files from config");
-      DEBUG("Fanotify_Mark: Failed to mark files from config\n", NULL);
+      DEBUG("Fanotify_Mark: Failed to mark files from config");
 
       exit(EXIT_FAILURE);
     }
-    DEBUG(config_obj->watchlist[i].path, ": Successfully added");
+    DEBUG("%s: Marked", config_obj->watchlist[i].path);
     i++;
   }
 }
@@ -175,8 +161,7 @@ void signal_handler(int sig) {
     if (fp_log != NULL) fclose(fp_log);
     remove(LOCK_FILE);
     close(config_fd);
-    DEBUG("Terminating cruxfilemond\n", NULL);
-    syslog(LOG_NOTICE, "cruxfilemond terminated");
+    DEBUG("Terminating cruxfilemond");
     closelog();
     exit(EXIT_SUCCESS);
   }
@@ -189,7 +174,7 @@ void help(char* argv) {
           "a daemon process\n");
 }
 
-static void load_options(const int argc, char* argv[]) {
+static void parse_options(const int argc, char* argv[]) {
   if (argc > 1) {
     if (strncmp("-d", argv[1], 3) == 0) {
       debug = 1;

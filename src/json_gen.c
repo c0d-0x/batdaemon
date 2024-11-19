@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include "debug.h"
 #include "filemond.h"
 #include "main.h"
 
@@ -11,7 +12,7 @@ size_t validate_json(char *json_file) {
   char CC;
   FILE *json_fp = NULL;
   if ((json_fp = fopen(json_file, "r")) == NULL) {
-    fprintf(stderr, "Failed to open json file: %s", strerror(errno));
+    DEBUG("Failed to open json file: %s", strerror(errno));
     return NOT_FOUND;
   }
 
@@ -36,7 +37,7 @@ size_t validate_json(char *json_file) {
 
   return VALID_JSON;
 }
-/*functions from my json_generator lib.*/
+/*functions constructs the json object.*/
 void json_constructor(FILE *json_fp, json_obj_t *json_obj) {
   if (json_fp != NULL) {
     fputs("{", json_fp);
@@ -72,7 +73,7 @@ void append_to_file(FILE *json_fp, json_obj_t *json_obj,
     case NOT_FOUND:
       exit(CUSTOM_ERR);
     case INVALID_JSON:
-      fprintf(stderr, "Invalid json format");
+      DEBUG("Invalid json format");
       exit(CUSTOM_ERR);
   }
 }

@@ -23,10 +23,10 @@ config_t *parse_config_file(int config_fd) {
 
   if (lseek(config_fd, 0, SEEK_SET) == -1) return NULL;
   if ((config_obj = calloc(0x1, sizeof(config_t))) == NULL) {
-    DEBUG("Failed to Allocate memory: Malloc\n", NULL);
+    DEBUG("Calloc Failed: %s", strerror(errno));
     exit(EXIT_FAILURE);
   }
-
+  /*[TODO]: fix with fgets() instead of read() */
   while (watch_len < MAX_WATCH) {
     read_len = read(config_fd, &CC, sizeof(char));
     if (read_len == 0) {
@@ -43,8 +43,7 @@ config_t *parse_config_file(int config_fd) {
           continue;
         }
       } else {
-        syslog(LOG_ERR, "%s\n -> Invalid input from the config\n", buffer);
-        DEBUG(buffer, " ->Invalid input from the config");
+        DEBUG("%s -> Invalid input from the config", buffer);
         free(config_obj);
         return NULL;
       }
@@ -65,7 +64,7 @@ config_t *parse_config_file(int config_fd) {
 }
 
 void config_obj_cleanup(config_t *config_obj) {
-  DEBUG("watchlist clean up\n", NULL);
+  DEBUG("watchlist clean up");
   for (size_t i = 0; i < config_obj->watchlist_len; i++) {
     free(config_obj->watchlist[i].path);
   }
@@ -74,11 +73,11 @@ void config_obj_cleanup(config_t *config_obj) {
 
 size_t check_lock(char *path_lock) {
   if (access(path_lock, F_OK) != 0) {
-    DEBUG("No LOCK_FILE found: No instance of cruxfilemond running\n", NULL);
+    DEBUG("No instance of cruxfilemond running");
     FILE *fp_lock = NULL;
     if ((fp_lock = fopen(path_lock, "w")) == NULL) {
       perror("Could not create lock file");
-      DEBUG("Could not create lock file: ", strerror(errno));
+      DEBUG("Could not create lock file: %s", strerror(errno));
       return CUSTOM_ERR;
     }
     return EXIT_SUCCESS;
@@ -108,8 +107,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     /* Read some events. */
     len = read(fan_fd, buf, sizeof(buf));
     if (len == -1 && errno != EAGAIN) {
-      syslog(LOG_ERR, "Failed to read fan_events");
-      DEBUG("Failed to read fan_events", NULL);
+      DEBUG("Failed to read fan_events");
       exit(EXIT_FAILURE);
     }
 
@@ -126,8 +124,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       /* Check that run-time and compile-time structures match. */
 
       if (metadata->vers != FANOTIFY_METADATA_VERSION) {
-        syslog(LOG_ERR, "Mismatch of fanotify metadata version.\n");
-        DEBUG("Mismatch of fanotify metadata version\n", NULL);
+        DEBUG("Mismatch of fanotify metadata version");
         exit(EXIT_FAILURE);
       }
 
@@ -152,16 +149,15 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
                  metadata->fd);
         path_len = readlink(procfd_path, path, sizeof(path) - 1);
         if (path_len == -1) {
-          syslog(LOG_ERR, "readlink: %s", strerror(errno));
-          DEBUG("readlink: ", strerror(errno));
+          DEBUG("readlink: %s", strerror(errno));
           exit(EXIT_FAILURE);
         }
 
         path[path_len] = '\0';
 
         if ((json_obj = tokenizer(buffer)) == NULL) {
-          syslog(LOG_ERR, "Fail to load effective process's info");
-          DEBUG("Failed to load effective process's info\n", NULL);
+          DEBUG("Failed to load effective process's info");
+          exit(EXIT_FAILURE);
         }
 
         json_obj->file = path;
@@ -169,8 +165,8 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
         get_locale_time(json_obj->date);
 
-        DEBUG("Event registered:", json_obj->e_p_event);
-        DEBUG(json_obj->file, "\n");
+        DEBUG("Event registered: %s", json_obj->e_p_event);
+        DEBUG("%s", json_obj->file);
 
         push_stk(&__stack, json_obj);
         close(metadata->fd);

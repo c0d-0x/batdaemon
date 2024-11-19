@@ -10,22 +10,22 @@ int init_inotify(char *file_path) {
   int inotify_fd;
   inotify_fd = inotify_init1(IN_NONBLOCK);
   if (inotify_fd == -1) {
-    DEBUG("Failed to initialize inotify\n", NULL);
-    return (-1);
+    DEBUG("Failed to initialize inotify");
+    return CUSTOM_ERR;
   }
 
-  if (inotify_add_watch(inotify_fd, file_path, IN_MODIFY | IN_NONBLOCK) == -1) {
-    DEBUG("Add Watch Failure: ", strerror(errno));
-    return (-1);
+  if (inotify_add_watch(inotify_fd, file_path, IN_MODIFY) == -1) {
+    DEBUG("Add Watch Failure: %s ", strerror(errno));
+    return CUSTOM_ERR;
   }
   return inotify_fd;
 }
 
 config_t *inotify_event_handler(int inotify_fd, int config_fd,
                                 config_t *(*handler)(int config_fd)) {
-  struct inotify_event *event;
   int len;
   config_t *config_obj = NULL;
+  struct inotify_event *event;
   char buffer[200] = {0x0};
 
   while (1) {
@@ -34,14 +34,14 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
       perror("read syscall Failed");
       exit(EXIT_FAILURE);
     } else if (errno == EAGAIN)
-      break;
+      continue;
 
     if (len == 0) return NULL;
     for (char *buf_prt = buffer; buf_prt < buffer + len;
          buf_prt += sizeof(struct inotify_event) + event->len) {
       event = (struct inotify_event *)buf_prt;
       if (event->mask & IN_MODIFY) {
-        DEBUG(event->name, "is modified\n");
+        DEBUG("%s is modified", event->name);
         config_obj = handler(config_fd);
         return config_obj;
       }

@@ -1,14 +1,17 @@
 
+#include <sys/syslog.h>
 #ifndef DEBUG_H
 #include <stdio.h>
 extern size_t debug;
 
-void DEBUG(char *debug_msg, char *debug_msg2);
-/*#define DEBUG(fmt, ...)                                        \*/
-/*  do {                                                         \*/
-/*    if (debug) {                                               \*/
-/*      fprintf(stderr, "[filemond-debug] " fmt, ##__VA_ARGS__); \*/
-/*    }                                                          \*/
-/*  } while (0)*/
+#define DEBUG(fmt, ...)                                           \
+  do {                                                            \
+    if (debug) {                                                  \
+      fprintf(stderr, "[filemond-debug]\x20" fmt, ##__VA_ARGS__); \
+      fprintf(stderr, "\n");                                      \
+    } else {                                                      \
+      syslog(LOG_INFO, fmt, ##__VA_ARGS__);                       \
+    }                                                             \
+  } while (0)
 
 #endif  // !DEBUG_H
