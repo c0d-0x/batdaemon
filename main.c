@@ -10,20 +10,20 @@
 #include "src/inotify.h"
 
 int config_fd;
-FILE* fp_log = NULL;
-config_t* config_obj = NULL;
 size_t debug = 0;
+FILE* fp_log = NULL;
+int fan_fd, inotify_fd;
+config_t* config_obj = NULL;
 
 void help(char* argv);
 void signal_handler(int sig);
-static void fan_mark_wraper(int fd, config_t* config_obj);
 static void parse_options(const int argc, char* argv[]);
+static void fan_mark_wraper(int fd, config_t* config_obj);
 
 int main(int argc, char* argv[]) {
-  FILE* fp_lock;
-  int fan_fd, inotify_fd;
-  int poll_num;
   nfds_t nfds;
+  int poll_num;
+  FILE* fp_lock;
   struct pollfd fds[2];
   struct sigaction sigact;
 
