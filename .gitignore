@@ -4,6 +4,7 @@ main
 *.json
 *.lock
 *.conf
+*.config
 .idea
 .vscode
 test.*
