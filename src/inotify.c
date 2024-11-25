@@ -26,12 +26,12 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
   int len;
   config_t *config_obj = NULL;
   struct inotify_event *event;
-  char buffer[200] = {0x0};
+  char buffer[4096] = {0x0};
 
   while (1) {
     len = read(inotify_fd, buffer, sizeof(buffer));
     if (len == -1 && errno != EAGAIN) {
-      perror("read syscall Failed");
+      DEBUG("read syscall Failed: %s", strerror(errno));
       exit(EXIT_FAILURE);
     } else if (errno == EAGAIN)
       continue;

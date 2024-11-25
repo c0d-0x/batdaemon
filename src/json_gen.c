@@ -74,6 +74,6 @@ void append_to_file(FILE *json_fp, json_obj_t *json_obj,
       exit(CUSTOM_ERR);
     case INVALID_JSON:
       DEBUG("Invalid json format");
-      exit(CUSTOM_ERR);
+      kill(getpid(), SIGTERM);
   }
 }

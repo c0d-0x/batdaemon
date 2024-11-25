@@ -1,6 +1,5 @@
 #include "filemond.h"
 
-#include <ctype.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,7 +16,7 @@ config_t *parse_config_file(int config_fd) {
 
   char CC;
   struct stat path_stat;
-  size_t i = 0, F_Flag, watch_len = 0, read_len;
+  size_t i = 0, F_Flag, watch_len = 0, len;
   char buffer[PATH_MAX];
   config_t *config_obj;
 
@@ -28,24 +27,25 @@ config_t *parse_config_file(int config_fd) {
   }
   /*[TODO]: fix with fgets() instead of read() */
   while (watch_len < MAX_WATCH) {
-    read_len = read(config_fd, &CC, sizeof(char));
-    if (read_len == 0) {
+    len = read(config_fd, &CC, sizeof(char));
+    if (len <= 0) {
       break;
     }
-    if (isspace(CC) && i == 0) continue;
+    if (CC == 0x20 || (CC == '\n' && i == 0)) continue;
     if (CC == '\n') {
-      if (stat(buffer, &path_stat) == 0) {
-        if (path_stat.st_mode & S_IFDIR) {
-          F_Flag = F_IS_DIR;
-        } else if (path_stat.st_mode & S_IFREG) {
-          F_Flag = F_IS_FILE;
-        } else {
-          continue;
-        }
-      } else {
+      if (stat(buffer, &path_stat) != 0) {
         DEBUG("%s -> Invalid input from the config", buffer);
         free(config_obj);
+        config_obj = NULL;
         return NULL;
+      }
+
+      if (path_stat.st_mode & S_IFDIR) {
+        F_Flag = F_IS_DIR;
+      } else if (path_stat.st_mode & S_IFREG) {
+        F_Flag = F_IS_FILE;
+      } else {
+        continue;
       }
 
       i = 0;
@@ -56,8 +56,10 @@ config_t *parse_config_file(int config_fd) {
     } else
       buffer[i++] = CC;
   }
+
   if (config_obj->watchlist_len == 0) {
     free(config_obj);
+    config_obj = NULL;
     return NULL;
   }
   return config_obj;
@@ -69,31 +71,31 @@ void config_obj_cleanup(config_t *config_obj) {
     free(config_obj->watchlist[i].path);
   }
   free(config_obj);
+  config_obj = NULL;
 }
 
 size_t check_lock(char *path_lock) {
-  if (access(path_lock, F_OK) != 0) {
-    DEBUG("No instance of cruxfilemond running");
-    FILE *fp_lock = NULL;
-    if ((fp_lock = fopen(path_lock, "w")) == NULL) {
-      perror("Could not create lock file");
-      DEBUG("Could not create lock file: %s", strerror(errno));
-      return CUSTOM_ERR;
-    }
-    return EXIT_SUCCESS;
+  if (access(path_lock, F_OK) == 0) {
+    fprintf(stderr, "An instance of cruxfilemond is already running\n");
+    fprintf(stderr,
+            "If no cruxfilemond instance is running, Delete '%s' file \n",
+            LOCK_FILE);
+    return CUSTOM_ERR;
   }
 
-  fprintf(stderr,
-          "An instance of cruxfilemond is already running\n"
-          "If no cruxfilemond instance is running, Delete '%s' file \n",
-          LOCK_FILE);
-  return CUSTOM_ERR;
+  DEBUG("No instance of cruxfilemond running");
+  FILE *fp_lock = NULL;
+  if ((fp_lock = fopen(path_lock, "w")) == NULL) {
+    perror("Could not create lock file");
+    return CUSTOM_ERR;
+  }
+  return EXIT_SUCCESS;
 }
 
 void fan_event_handler(int fan_fd, FILE *fp_log) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
-  char *buffer[11] = {0x0};
+  char *buffer[11] = {NULL};
   ssize_t len;
   cus_stack_t *__stack = NULL;
   cus_stack_t *__stack_ptr = NULL;
@@ -108,7 +110,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
     len = read(fan_fd, buf, sizeof(buf));
     if (len == -1 && errno != EAGAIN) {
       DEBUG("Failed to read fan_events");
-      exit(EXIT_FAILURE);
+      kill(getpid(), SIGTERM);
     }
 
     /* Check if end of available data reached. */
@@ -125,7 +127,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
       if (metadata->vers != FANOTIFY_METADATA_VERSION) {
         DEBUG("Mismatch of fanotify metadata version");
-        exit(EXIT_FAILURE);
+        kill(getpid(), SIGTERM);
       }
 
       /* metadata->fd contains either FAN_NOFD, indicating a
@@ -150,14 +152,14 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         path_len = readlink(procfd_path, path, sizeof(path) - 1);
         if (path_len == -1) {
           DEBUG("readlink: %s", strerror(errno));
-          exit(EXIT_FAILURE);
+          kill(getpid(), SIGTERM);
         }
 
         path[path_len] = '\0';
 
         if ((json_obj = tokenizer(buffer)) == NULL) {
           DEBUG("Failed to load effective process's info");
-          exit(EXIT_FAILURE);
+          kill(getpid(), SIGTERM);
         }
 
         json_obj->file = path;
@@ -180,6 +182,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       append_to_file(fp_log, json_obj, json_constructor);
       cleanup_procinfo(__stack_ptr->data);
       free(__stack_ptr);
+      __stack_ptr = NULL;
     }
   }
   /*flushing the file buffer, after writing.*/

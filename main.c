@@ -28,11 +28,6 @@ int main(int argc, char* argv[]) {
   struct sigaction sigact;
 
   parse_options(argc, argv);
-  if (getuid() != 0) {
-    fprintf(stderr, "Run %s as root!!\n", argv[0]);
-    exit(EXIT_FAILURE);
-  }
-
   if (check_lock(LOCK_FILE) != 0) exit(EXIT_FAILURE);
   if (!debug) _daemonize();
 
@@ -59,12 +54,12 @@ int main(int argc, char* argv[]) {
   config_fd = open(CONFIG_FILE, O_RDONLY | O_NONBLOCK);
   if (config_fd == -1) {
     DEBUG("Failed to open the config file: %s", CONFIG_FILE);
-    EXIT_FAILURE;
+    kill(getpid(), SIGTERM);
   }
 
   if ((fp_log = fopen(LOG_FILE, "w+")) == NULL) {
     DEBUG("Failed to open LOG_FILE: %s", strerror(errno));
-    exit(EXIT_FAILURE);
+    kill(getpid(), SIGTERM);
   }
 
   DEBUG("LOG_FILE opened: %s", LOG_FILE);
@@ -73,24 +68,24 @@ int main(int argc, char* argv[]) {
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     DEBUG("Failed to initializing an Fa_Notify instance: %s", strerror(errno));
-    exit(EXIT_FAILURE);
+    kill(getpid(), SIGTERM);
   }
 
   /*Watch the config file for changes*/
   inotify_fd = init_inotify(CONFIG_FILE);
   if (inotify_fd == -1) {
-    exit(EXIT_FAILURE);
+    kill(getpid(), SIGTERM);
   }
 
   DEBUG("A valid Fa_Notify file descriptor: initialized");
   config_obj = parse_config_file(config_fd);
   if (config_obj == NULL || config_obj->watchlist_len == 0 ||
       config_obj->watchlist->path == NULL) {
-    DEBUG("%s :is empty! Add files or dirs to be watched", CONFIG_FILE);
-    exit(EXIT_FAILURE);
+    DEBUG("%s: Error! Add valid files and dirs to be watched", CONFIG_FILE);
+    kill(getpid(), SIGTERM);
   }
 
-  DEBUG("Marking watchlist to the fanotify maker func");
+  DEBUG("Marking watchlist...");
   fan_mark_wraper(fan_fd, config_obj); /* Adds watched items to fan_fd*/
   config_obj_cleanup(config_obj);
   /*pause();*/
@@ -108,8 +103,8 @@ int main(int argc, char* argv[]) {
       if (errno == EINTR) /* Interrupted by a signal */
         continue;         /* Restart poll() */
 
-      DEBUG("Poll Failed");
-      exit(EXIT_FAILURE);
+      DEBUG("Poll Failed: %s", strerror(errno));
+      kill(getpid(), SIGTERM);
     }
 
     if (poll_num > 0) {
@@ -127,7 +122,7 @@ int main(int argc, char* argv[]) {
                           FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                           NULL) == -1) {
           DEBUG("Fanotify_Mark: Failed!!!");
-          exit(EXIT_FAILURE);
+          kill(getpid(), SIGTERM);
         }
 
         fan_mark_wraper(fan_fd, config_obj);
@@ -147,8 +142,7 @@ static void fan_mark_wraper(int fd, config_t* config_obj) {
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
                       config_obj->watchlist[i].path) == -1) {
       DEBUG("Fanotify_Mark: Failed to mark files from config");
-
-      exit(EXIT_FAILURE);
+      kill(getpid(), SIGTERM);
     }
     DEBUG("%s: Marked", config_obj->watchlist[i].path);
     i++;
@@ -175,6 +169,11 @@ void help(char* argv) {
 }
 
 static void parse_options(const int argc, char* argv[]) {
+  if (getuid() != 0) {
+    fprintf(stderr, "Run %s as root!!\n", argv[0]);
+    exit(EXIT_FAILURE);
+  }
+
   if (argc > 1) {
     if (strncmp("-d", argv[1], 3) == 0) {
       debug = 1;

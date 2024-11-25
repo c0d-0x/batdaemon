@@ -3,7 +3,7 @@ main
 *.log
 *.json
 *.lock
-*.config
+*.conf
 .idea
 .vscode
 test.*

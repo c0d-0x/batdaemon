@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "debug.h"
 #include "json_gen.h"
@@ -25,7 +26,7 @@ void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
         index_n = tok - buf_temp;
         buf_temp[index_n] = '\0';
       }
-      buffer[i] = strdup(buf_temp);
+      if (buf_temp[0] != '\0') buffer[i] = strdup(buf_temp);
       i++;
     }
     fclose(proc_fd);
@@ -48,34 +49,39 @@ json_obj_t *tokenizer(char *buffer[]) {
     return NULL;
   }
 
-  while (buffer[i] != NULL && i < 11) {
-    printf("%s\n", buffer[i]);
-    token = strtok_r(buffer[i], ":\t\r ", &saveptr);
-    if (token == NULL) {
-      DEBUG("Failed to load_proc_info\n");
-      exit(CUSTOM_ERR);
-    }
+  while (i < 11) {
+    if (buffer[i] != NULL) {
+      DEBUG("proc_buffer[%ld]-> %s", i, buffer[i]);
+      token = strtok_r(buffer[i], ":\t\r ", &saveptr);
+      if (token == NULL) {
+        DEBUG("Failed to load_proc_info\n");
+        exit(CUSTOM_ERR);
+      }
 
-    if (strncmp(token, "Name", sizeof("Name")) == 0) {
-      token = strtok_r(NULL, "\t ", &saveptr);
-      json_obj->e_process = strdup(token);
-    }
+      if (strncmp(token, "Name", sizeof("Name")) == 0) {
+        token = strtok_r(NULL, "\t ", &saveptr);
+        json_obj->e_process = strdup(token);
+      }
 
-    if (strncmp(token, "Umask", sizeof("Umask")) == 0) {
-      token = strtok_r(NULL, "\t ", &saveptr);
-      json_obj->e_p_Umask = strdup(token);
-    }
+      if (strncmp(token, "Umask", sizeof("Umask")) == 0) {
+        token = strtok_r(NULL, "\t ", &saveptr);
+        json_obj->e_p_Umask = strdup(token);
+      }
 
-    if (strncmp(token, "State", sizeof("State")) == 0) {
-      token = strtok_r(NULL, "\t ", &saveptr);
-      json_obj->e_p_state = strdup(saveptr);
-    }
+      if (strncmp(token, "State", sizeof("State")) == 0) {
+        token = strtok_r(NULL, "\t ", &saveptr);
+        json_obj->e_p_state = strdup(saveptr);
+      }
 
-    if (strncmp(token, "Uid", sizeof("Uid")) == 0) {
-      token = strtok_r(NULL, "\t", &saveptr);
-      json_obj->e_username = strdup(get_user(atoi(token)));
+      if (strncmp(token, "Uid", sizeof("Uid")) == 0) {
+        token = strtok_r(NULL, "\t", &saveptr);
+        json_obj->e_username = strdup(get_user(atoi(token)));
+      }
+      DEBUG("&buffer[%ld]: %p", i, buffer[i]);
+      DEBUG("&token: %p\n", token);
+      free(buffer[i]);
+      buffer[i] = NULL;
     }
-    free(buffer[i]);
     i++;
   }
   return json_obj;
@@ -88,6 +94,7 @@ void cleanup_procinfo(json_obj_t *json_obj) {
     if (json_obj->e_p_state != NULL) free(json_obj->e_p_state);
     if (json_obj->e_p_Umask != NULL) free(json_obj->e_p_Umask);
     free(json_obj);
+    json_obj = NULL;
   }
 }
 

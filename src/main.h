@@ -1,7 +1,7 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define CONFIG_FILE "cf.config"
+#define CONFIG_FILE "cf.conf"
 #define LOG_FILE "cf_log.json"
 #define LOCK_FILE "cf.lock"
 #define CF_HOME_DIR
