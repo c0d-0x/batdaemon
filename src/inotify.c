@@ -3,8 +3,8 @@
 #include <string.h>
 #include <sys/inotify.h>
 
+#include "core.h"
 #include "debug.h"
-#include "filemond.h"
 
 int init_inotify(char *file_path) {
   int inotify_fd;
@@ -14,7 +14,7 @@ int init_inotify(char *file_path) {
     return CUSTOM_ERR;
   }
 
-  if (inotify_add_watch(inotify_fd, file_path, IN_MODIFY) == -1) {
+  if (inotify_add_watch(inotify_fd, file_path, IN_MODIFY | IN_DELETE) == -1) {
     DEBUG("Add Watch Failure: %s ", strerror(errno));
     return CUSTOM_ERR;
   }
@@ -32,7 +32,7 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
     len = read(inotify_fd, buffer, sizeof(buffer));
     if (len == -1 && errno != EAGAIN) {
       DEBUG("read syscall Failed: %s", strerror(errno));
-      exit(EXIT_FAILURE);
+      kill(getpid(), SIGTERM);
     } else if (errno == EAGAIN)
       continue;
 

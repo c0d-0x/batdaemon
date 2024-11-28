@@ -9,7 +9,7 @@
 #include <sys/inotify.h>
 #include <unistd.h>
 
-#include "filemond.h"
+#include "core.h"
 
 int init_inotify(char* file_path);
 config_t* inotify_event_handler(int inotify_fd, int config_fd,

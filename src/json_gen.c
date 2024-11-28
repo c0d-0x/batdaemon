@@ -1,11 +1,6 @@
 #include "json_gen.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 #include "debug.h"
-#include "filemond.h"
 #include "main.h"
 
 size_t validate_json(char *json_file) {
@@ -71,9 +66,11 @@ void append_to_file(FILE *json_fp, json_obj_t *json_obj,
       writer_json_obj(json_fp, json_obj, json_constructor);
       break;
     case NOT_FOUND:
-      exit(CUSTOM_ERR);
+      DEBUG("%s: Not found", LOG_FILE);
+      kill(getpid(), SIGTERM);
+      break;
     case INVALID_JSON:
-      DEBUG("Invalid json format");
+      DEBUG("Invalid json format: %s", LOG_FILE);
       kill(getpid(), SIGTERM);
   }
 }

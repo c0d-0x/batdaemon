@@ -7,7 +7,7 @@
 #include "debug.h"
 #include "json_gen.h"
 
-void proc_info(pid_t pid, char *buffer[], size_t buf_max) {
+void get_proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};
   char buf_temp[64] = {0x0};
   char *tok = NULL;
@@ -54,8 +54,8 @@ json_obj_t *tokenizer(char *buffer[]) {
       DEBUG("proc_buffer[%ld]-> %s", i, buffer[i]);
       token = strtok_r(buffer[i], ":\t\r ", &saveptr);
       if (token == NULL) {
-        DEBUG("Failed to load_proc_info\n");
-        exit(CUSTOM_ERR);
+        DEBUG("Failed to load proc info\n");
+        kill(getpid(), SIGTERM);
       }
 
       if (strncmp(token, "Name", sizeof("Name")) == 0) {

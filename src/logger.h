@@ -10,7 +10,7 @@
 #include <syslog.h>
 #include <time.h>
 
-#include "filemond.h"
+#include "core.h"
 #include "json_gen.h"
 
 /**
@@ -37,7 +37,7 @@ void get_locale_time(char *buf);
 void cleanup_procinfo(json_obj_t *json_obj);
 int push_stk(cus_stack_t **head, json_obj_t *data);
 cus_stack_t *pop_stk(cus_stack_t **head);
-void proc_info(pid_t pid, char *buffer[], size_t buf_max);
+void get_proc_info(pid_t pid, char *buffer[], size_t buf_max);
 json_obj_t *tokenizer(char *buffer[]);
 char *get_user(const uid_t uid);
 

@@ -4,9 +4,9 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "./src/core.h"
 #include "./src/daemonz.h"
 #include "./src/debug.h"
-#include "./src/filemond.h"
 #include "src/inotify.h"
 
 int config_fd;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
 
   DEBUG("LOG_FILE opened: %s", LOG_FILE);
   DEBUG("Initializing an Fa_Notify instance");
-  // fanotify for mornitoring files.
+  /*fanotify for mornitoring files.*/
   fan_fd = fanotify_init(FAN_CLOEXEC | FAN_NONBLOCK, O_RDONLY | O_LARGEFILE);
   if (fan_fd == -1) {
     DEBUG("Failed to initializing an Fa_Notify instance: %s", strerror(errno));

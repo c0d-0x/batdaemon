@@ -1,4 +1,4 @@
-#include "filemond.h"
+#include "core.h"
 
 #include <linux/limits.h>
 #include <stdio.h>
@@ -138,11 +138,11 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         /* Handle open permission event. */
         if (metadata->mask & FAN_OPEN) {
           p_event = FAN_OPEN;
-          proc_info(metadata->pid, buffer, 11);
+          get_proc_info(metadata->pid, buffer, 11);
 
         } else if (metadata->mask & FAN_MODIFY) {
           p_event = FAN_MODIFY;
-          proc_info(metadata->pid, buffer, 11);
+          get_proc_info(metadata->pid, buffer, 11);
         }
 
         /* Retrieve and print pathname of the accessed file. */

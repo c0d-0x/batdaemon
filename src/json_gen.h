@@ -2,6 +2,7 @@
 #define JSON_GEN_H
 
 #include <errno.h>
+#include <signal.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
