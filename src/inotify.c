@@ -26,8 +26,7 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
   int len;
   config_t *config_obj = NULL;
   struct inotify_event *event;
-  char buffer[4096] = {0x0};
-
+  char buffer[4096] __attribute__((aligned(__alignof__(struct inotify_event))));
   while (1) {
     len = read(inotify_fd, buffer, sizeof(buffer));
     if (len == -1 && errno != EAGAIN) {

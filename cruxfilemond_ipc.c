@@ -7,7 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define LOG_FILE "cf.log"
+#define LOG_FILE "./cf_log.json"
 #define LOCK_FILE "cf.lock"
 #define CUSTOM_ERR (-1)
 #define UPDATE "-u"
@@ -16,20 +16,18 @@
 
 void help(char *prog) {
   fprintf(stderr, "usage:%s < -option >\n", prog);
-  printf("\tOptions\n\t %s: Sends a sighup to update cruxfilemond "
-         "config\n\t %s: sends a sigterm to terminate "
-         "cruxfilemond\n\t %s: dumps cf.log\n",
-         UPDATE, TERMT, DUMP);
+  printf(
+      "\tOptions\n\t %s: Sends a sighup to update cruxfilemond "
+      "config\n\t %s: sends a sigterm to terminate "
+      "cruxfilemond\n\t %s: dumps cf.log\n",
+      UPDATE, TERMT, DUMP);
 }
 
 size_t option(char *opt) {
   ssize_t valid_opt = -1;
-  if (strncmp(opt, UPDATE, strnlen(UPDATE, 3)) == 0)
-    valid_opt = SIGHUP;
-  if (strncmp(opt, TERMT, strnlen(TERMT, 3)) == 0)
-    valid_opt = SIGTERM;
-  if (strncmp(opt, DUMP, strnlen(DUMP, 3)) == 0)
-    valid_opt = SIGUSR1;
+  if (strncmp(opt, UPDATE, strnlen(UPDATE, 3)) == 0) valid_opt = SIGHUP;
+  if (strncmp(opt, TERMT, strnlen(TERMT, 3)) == 0) valid_opt = SIGTERM;
+  if (strncmp(opt, DUMP, strnlen(DUMP, 3)) == 0) valid_opt = SIGUSR1;
 
   return valid_opt;
 }
@@ -43,8 +41,7 @@ void dump_log(void) {
   }
   while (1) {
     int cc = getc(fp_log);
-    if (cc == EOF)
-      break;
+    if (cc == EOF) break;
     putc(cc, stdout);
   }
   fclose(fp_log);
