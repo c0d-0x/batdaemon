@@ -72,7 +72,7 @@ int main(int argc, char* argv[]) {
   }
 
   /*Watch the config file for changes*/
-  inotify_fd = init_inotify(CONFIG_FILE);
+  inotify_fd = init_inotify(CF_HOME_DIR);
   if (inotify_fd == -1) {
     kill(getpid(), SIGTERM);
   }

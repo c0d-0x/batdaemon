@@ -168,7 +168,8 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         get_locale_time(json_obj->date);
 
         DEBUG("Event registered: %s", json_obj->e_p_event);
-        DEBUG("%s", json_obj->file);
+        DEBUG("FILE: %s", json_obj->file);
+        DEBUG("Process: %s\n", json_obj->e_process);
 
         push_stk(&__stack, json_obj);
         close(metadata->fd);

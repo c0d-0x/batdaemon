@@ -51,7 +51,7 @@ json_obj_t *tokenizer(char *buffer[]) {
 
   while (i < 11) {
     if (buffer[i] != NULL) {
-      DEBUG("proc_buffer[%ld]-> %s", i, buffer[i]);
+      /*DEBUG("proc_buffer[%ld]-> %s", i, buffer[i]);*/
       token = strtok_r(buffer[i], ":\t\r ", &saveptr);
       if (token == NULL) {
         DEBUG("Failed to load proc info\n");
@@ -77,8 +77,8 @@ json_obj_t *tokenizer(char *buffer[]) {
         token = strtok_r(NULL, "\t", &saveptr);
         json_obj->e_username = strdup(get_user(atoi(token)));
       }
-      DEBUG("&buffer[%ld]: %p", i, buffer[i]);
-      DEBUG("&token: %p\n", token);
+      /*DEBUG("&buffer[%ld]: %p", i, buffer[i]);*/
+      /*DEBUG("&token: %p\n", token);*/
       free(buffer[i]);
       buffer[i] = NULL;
     }
