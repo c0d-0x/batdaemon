@@ -33,7 +33,7 @@ typedef struct node {
  * @param procinfo A pointer to the proc_info_t structure whose memory needs to
  * be freed.
  */
-void get_locale_time(char *buf);
+char *get_locale_time(void);
 void cleanup_procinfo(json_obj_t *json_obj);
 int push_stk(cus_stack_t **head, json_obj_t *data);
 cus_stack_t *pop_stk(cus_stack_t **head);

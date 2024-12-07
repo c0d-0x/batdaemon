@@ -92,13 +92,25 @@ size_t check_lock(char *path_lock) {
   return EXIT_SUCCESS;
 }
 
+static void write_json_wrapper(cus_stack_t *__stack, FILE *fp_log) {
+  cus_stack_t *__stack_ptr;
+  while (__stack != NULL) {
+    __stack_ptr = pop_stk(&__stack);
+    append_to_file(fp_log, __stack_ptr->data, json_constructor);
+    cleanup_procinfo(__stack_ptr->data);
+    if (__stack_ptr != NULL) {
+      free(__stack_ptr);
+      __stack_ptr = NULL;
+    }
+  }
+}
+
 void fan_event_handler(int fan_fd, FILE *fp_log) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {NULL};
   ssize_t len;
   cus_stack_t *__stack = NULL;
-  cus_stack_t *__stack_ptr = NULL;
   char path[PATH_MAX] = {0x0};
   json_obj_t *json_obj;
   ssize_t path_len, p_event;
@@ -165,8 +177,8 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         json_obj->file = path;
         json_obj->e_p_event =
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
-        get_locale_time(json_obj->date);
 
+        json_obj->date = get_locale_time();
         DEBUG("Event registered: %s", json_obj->e_p_event);
         DEBUG("FILE: %s", json_obj->file);
         DEBUG("Process: %s\n", json_obj->e_process);
@@ -178,13 +190,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       metadata = FAN_EVENT_NEXT(metadata, len);
     }
 
-    while (__stack != NULL) {
-      __stack_ptr = pop_stk(&__stack);
-      append_to_file(fp_log, json_obj, json_constructor);
-      cleanup_procinfo(__stack_ptr->data);
-      free(__stack_ptr);
-      __stack_ptr = NULL;
-    }
+    write_json_wrapper(__stack, fp_log);
   }
   /*flushing the file buffer, after writing.*/
   fflush(fp_log);

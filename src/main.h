@@ -1,5 +1,5 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#ifndef MAIN_H
+#define MAIN_H
 
 #define CONFIG_FILE ".config/cf.conf"
 #define LOG_FILE "cf_log.json"
@@ -8,4 +8,4 @@
 #define CF_HOME_DIR ".config"
 #define VERSION 1.1
 
-#endif  // !CONFIG_H
+#endif  // !MAIN_H

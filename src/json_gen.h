@@ -16,7 +16,7 @@ enum FILE_STATE { EMPTY_FILE = 0, NOT_FOUND, VALID_JSON, INVALID_JSON };
  * Use this structure to construct your json_constructor function.
  * */
 typedef struct {
-  char date[26];
+  char *date;
   char *file;
   char *e_process;
   char *e_p_event;

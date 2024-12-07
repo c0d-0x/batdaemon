@@ -10,27 +10,26 @@
 void get_proc_info(pid_t pid, char *buffer[], size_t buf_max) {
   char procfd_path[32] = {0x0};
   char buf_temp[64] = {0x0};
-  char *tok = NULL;
   FILE *proc_fd = NULL;
-  size_t index_n, i = 0;
+  size_t i = 0;
 
   snprintf(procfd_path, sizeof(procfd_path), "/proc/%d/status", pid);
-  if (access(procfd_path, F_OK) == 0) {
-    if ((proc_fd = fopen(procfd_path, "r")) == NULL) {
-      DEBUG("Failed to open proc_fd: %s", strerror(errno));
-      return;
-    }
-
-    while (fgets(buf_temp, sizeof(buf_temp), proc_fd) != NULL && i < buf_max) {
-      if ((tok = strchr(buf_temp, '\n')) != NULL) {
-        index_n = tok - buf_temp;
-        buf_temp[index_n] = '\0';
-      }
-      if (buf_temp[0] != '\0') buffer[i] = strdup(buf_temp);
-      i++;
-    }
-    fclose(proc_fd);
+  if (access(procfd_path, F_OK) != 0) {
+    DEBUG("Effective process has terminated");
+    return;
   }
+
+  if ((proc_fd = fopen(procfd_path, "r")) == NULL) {
+    DEBUG("Failed to open proc_fd: %s", strerror(errno));
+    return;
+  }
+
+  while (fgets(buf_temp, sizeof(buf_temp), proc_fd) != NULL && i < buf_max) {
+    buf_temp[strlen(buf_temp) - 1] = '\0';
+    if (buf_temp[0] != '\0') buffer[i] = strdup(buf_temp);
+    i++;
+  }
+  fclose(proc_fd);
 }
 
 char *get_user(const uid_t uid) {
@@ -89,6 +88,7 @@ json_obj_t *tokenizer(char *buffer[]) {
 
 void cleanup_procinfo(json_obj_t *json_obj) {
   if (json_obj != NULL) {
+    if (json_obj->date != NULL) free(json_obj->date);
     if (json_obj->e_username != NULL) free(json_obj->e_username);
     if (json_obj->e_process != NULL) free(json_obj->e_process);
     if (json_obj->e_p_state != NULL) free(json_obj->e_p_state);
@@ -108,6 +108,7 @@ int push_stk(cus_stack_t **head, json_obj_t *data) {
   node->data = data;
   node->next = (*head);
   (*head) = node;
+  data = NULL;
   return 0;
 }
 
@@ -115,16 +116,20 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
   if ((*head) == NULL) {
     return NULL;
   }
-
   cus_stack_t *node = (*head);
   (*head) = (*head)->next;
   node->next = NULL;
   return node;
 }
 
-void get_locale_time(char *buffer) {
-  if (buffer == NULL) return;
+char *get_locale_time(void) {
+  char *buffer = calloc(26, sizeof(char));
   struct tm tm = *localtime(&(time_t){time(NULL)});
   asctime_r(&tm, buffer);
+  if (buffer[0] == '\0') {
+    free(buffer);
+    return NULL;
+  }
   buffer[strnlen(buffer, 26) - 1] = '\0';
+  return buffer;
 }

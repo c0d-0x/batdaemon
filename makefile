@@ -1,6 +1,11 @@
 # Compiler and flags
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wformat-security -pedantic
+# Debugging params 
+CFLAGS += -fsanitize=address
+CFLAGS += -fno-omit-frame-pointer
+# CFLAGS += -fsanitize-recover=address
+
 # CLIBNOTFY = `pkg-config --cflags --libs libnotify`
 LIBS = 
 CRX_MSG = cruxfilemond_ipc
@@ -40,7 +45,7 @@ $(OBJFILES): $(CFILES)
 # 	sudo install -m 0755 $(BIN) $(PREFIX)/bin
 
 # Phony target (no actual command)
-.PHONY: clean uninstall all test
+.PHONY: run clean uninstall all test
 
 # Clean target
 clean:
