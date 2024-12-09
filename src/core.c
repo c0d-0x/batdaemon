@@ -182,15 +182,22 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         DEBUG("Event registered: %s", json_obj->e_p_event);
         DEBUG("FILE: %s", json_obj->file);
         DEBUG("Process: %s\n", json_obj->e_process);
+        /*[TODO:] I've been having memory issues with my custom stack, hence
+         * needs looking into.*/
 
-        push_stk(&__stack, json_obj);
+        /*push_stk(&__stack, json_obj);*/
+        /*[TODO:] Logging procinfo to a json format is really slow. To be
+         * FIXED*/
+        append_to_file(fp_log, json_obj, json_constructor);
+        cleanup_procinfo(json_obj);
+
         close(metadata->fd);
       }
       /* Advance to next event. */
       metadata = FAN_EVENT_NEXT(metadata, len);
     }
 
-    write_json_wrapper(__stack, fp_log);
+    /*write_json_wrapper(__stack, fp_log);*/
   }
   /*flushing the file buffer, after writing.*/
   fflush(fp_log);
