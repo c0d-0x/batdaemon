@@ -92,15 +92,15 @@ size_t check_lock(char *path_lock) {
   return EXIT_SUCCESS;
 }
 
-static void write_json_wrapper(cus_stack_t *__stack, FILE *fp_log) {
-  cus_stack_t *__stack_ptr;
-  while (__stack != NULL) {
-    __stack_ptr = pop_stk(&__stack);
-    append_to_file(fp_log, __stack_ptr->data, json_constructor);
-    cleanup_procinfo(__stack_ptr->data);
-    if (__stack_ptr != NULL) {
-      free(__stack_ptr);
-      __stack_ptr = NULL;
+static void write_json_wrapper(cus_stack_t *stack, FILE *fp_log) {
+  cus_stack_t *stack_ptr;
+  while (stack != NULL) {
+    stack_ptr = pop_stk(&stack);
+    append_to_file(fp_log, stack_ptr->data, json_constructor);
+    cleanup_procinfo(stack_ptr->data);
+    if (stack_ptr != NULL) {
+      free(stack_ptr);
+      stack_ptr = NULL;
     }
   }
 }
@@ -110,7 +110,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {NULL};
   ssize_t len;
-  cus_stack_t *__stack = NULL;
+  cus_stack_t *stack = NULL;
   char path[PATH_MAX] = {0x0};
   json_obj_t *json_obj;
   ssize_t path_len, p_event;
@@ -185,11 +185,11 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         /*[TODO:] I've been having memory issues with my custom stack, hence
          * needs looking into.*/
 
-        /*push_stk(&__stack, json_obj);*/
+        push_stk(&stack, json_obj);
         /*[TODO:] Logging procinfo to a json format is really slow. To be
          * FIXED*/
-        append_to_file(fp_log, json_obj, json_constructor);
-        cleanup_procinfo(json_obj);
+        /*append_to_file(fp_log, json_obj, json_constructor);*/
+        /*cleanup_procinfo(json_obj);*/
 
         close(metadata->fd);
       }
@@ -197,7 +197,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
       metadata = FAN_EVENT_NEXT(metadata, len);
     }
 
-    /*write_json_wrapper(__stack, fp_log);*/
+    write_json_wrapper(stack, fp_log);
   }
   /*flushing the file buffer, after writing.*/
   fflush(fp_log);
