@@ -42,7 +42,7 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
 
         if (inotify_add_watch(inotify_fd, CF_HOME_DIR, IN_MODIFY | IN_CREATE) ==
             -1) {
-          DEBUG("Add Watch Failure: %s ", strerror(errno));
+          DEBUG("Add Watch Failure: %s", strerror(errno));
           kill(getpid(), SIGTERM);
         }
 

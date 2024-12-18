@@ -181,7 +181,8 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         json_obj->date = get_locale_time();
         DEBUG("Event registered: %s", json_obj->e_p_event);
         DEBUG("FILE: %s", json_obj->file);
-        DEBUG("Process: %s\n", json_obj->e_process);
+        DEBUG("Process: %s", json_obj->e_process);
+        DEBUG("Username: %s\n", json_obj->e_username);
         /*[TODO:] I've been having memory issues with my custom stack, hence
          * needs looking into.*/
 

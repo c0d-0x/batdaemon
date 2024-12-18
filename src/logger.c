@@ -121,13 +121,19 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
 }
 
 char *get_locale_time(void) {
-  char *buffer = calloc(26, sizeof(char));
+  char *buffer = NULL;
+  if ((buffer = calloc(26, sizeof(char))) == NULL) {
+    DEBUG("Failed to allocate memory: %s", strerror(errno));
+    return NULL;
+  }
+
   struct tm tm = *localtime(&(time_t){time(NULL)});
   asctime_r(&tm, buffer);
   if (buffer[0] == '\0') {
     free(buffer);
     return NULL;
   }
+
   buffer[strnlen(buffer, 26) - 1] = '\0';
   return buffer;
 }
