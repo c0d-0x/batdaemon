@@ -96,9 +96,9 @@ static void write_json_wrapper(cus_stack_t *stack, FILE *fp_log) {
   cus_stack_t *stack_ptr;
   while (stack != NULL) {
     stack_ptr = pop_stk(&stack);
-    append_to_file(fp_log, stack_ptr->data, json_constructor);
-    cleanup_procinfo(stack_ptr->data);
     if (stack_ptr != NULL) {
+      append_to_file(fp_log, stack_ptr->data, json_constructor);
+      cleanup_procinfo(stack_ptr->data);
       free(stack_ptr);
       stack_ptr = NULL;
     }
