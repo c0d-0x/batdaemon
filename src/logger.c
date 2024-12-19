@@ -88,11 +88,31 @@ json_obj_t *tokenizer(char *buffer[]) {
 
 void cleanup_procinfo(json_obj_t *json_obj) {
   if (json_obj != NULL) {
-    if (json_obj->date != NULL) free(json_obj->date);
-    if (json_obj->e_username != NULL) free(json_obj->e_username);
-    if (json_obj->e_process != NULL) free(json_obj->e_process);
-    if (json_obj->e_p_state != NULL) free(json_obj->e_p_state);
-    if (json_obj->e_p_Umask != NULL) free(json_obj->e_p_Umask);
+    if (json_obj->date != NULL) {
+      free(json_obj->date);
+      json_obj->date = NULL;
+    }
+
+    if (json_obj->e_username != NULL) {
+      free(json_obj->e_username);
+      json_obj->e_username = NULL;
+    }
+
+    if (json_obj->e_process != NULL) {
+      free(json_obj->e_process);
+      json_obj->e_process = NULL;
+    }
+
+    if (json_obj->e_p_state != NULL) {
+      free(json_obj->e_p_state);
+      json_obj->e_p_state = NULL;
+    }
+
+    if (json_obj->e_p_Umask != NULL) {
+      free(json_obj->e_p_Umask);
+      json_obj->e_p_Umask = NULL;
+    }
+
     free(json_obj);
     json_obj = NULL;
   }
@@ -117,7 +137,7 @@ cus_stack_t *pop_stk(cus_stack_t **head) {
     return NULL;
   }
   cus_stack_t *node = (*head);
-  (*head) = (*head)->next;
+  (*head) = node->next;
   node->next = NULL;
   return node;
 }
