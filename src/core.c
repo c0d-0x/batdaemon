@@ -97,8 +97,8 @@ static void write_json_wrapper(cus_stack_t *stack, FILE *fp_log) {
   while (stack != NULL) {
     stack_ptr = pop_stk(&stack);
     if (stack_ptr != NULL) {
-      append_to_file(fp_log,(json_obj_t*)stack_ptr->data, json_constructor);
-      cleanup_procinfo((json_obj_t*)stack_ptr->data);
+      append_to_file(fp_log, (json_obj_t *)stack_ptr->data, json_constructor);
+      cleanup_procinfo((json_obj_t *)stack_ptr->data);
       free(stack_ptr);
       stack_ptr = NULL;
     }
@@ -179,14 +179,17 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
             (p_event == FAN_MODIFY) ? "FILE MODIFIED" : "FILE ACCESSED";
 
         json_obj->date = get_locale_time();
-        DEBUG("Event registered: %s", json_obj->e_p_event);
-        DEBUG("FILE: %s", json_obj->file);
+        DEBUG("umask: %s", json_obj->e_p_Umask);
         DEBUG("Process: %s", json_obj->e_process);
-        DEBUG("Username: %s\n", json_obj->e_username);
-        /*[TODO:] I've been having memory issues with my custom stack, hence
-         * needs looking into.*/
+        DEBUG("Process State: %s", json_obj->e_p_state);
+        DEBUG("Username: %s", json_obj->e_username);
+        DEBUG("Event registered: %s", json_obj->e_p_event);
+        DEBUG("FILE: %s\n", json_obj->file);
 
-        push_stk(&stack, json_obj);
+        if (push_stk(&stack, json_obj) != 0) {
+          DEBUG("Error: Failed to push json obj");
+          kill(getpid(), SIGTERM);
+        }
         /*[TODO:] Logging procinfo to a json format is really slow. To be
          * FIXED*/
         /*append_to_file(fp_log, json_obj, json_constructor);*/

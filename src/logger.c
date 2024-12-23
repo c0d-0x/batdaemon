@@ -3,7 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
+#include "core.h"
 #include "debug.h"
 #include "json_gen.h"
 
@@ -120,9 +122,10 @@ void cleanup_procinfo(json_obj_t *json_obj) {
 
 int push_stk(cus_stack_t **head, json_obj_t *data) {
   cus_stack_t *node = NULL;
+  if (data == NULL) return CUSTOM_ERR;
   if ((node = (cus_stack_t *)malloc(sizeof(cus_stack_t))) == NULL) {
     DEBUG("Malloc Failed: %s", strerror(errno));
-    return -1;
+    return CUSTOM_ERR;
   }
 
   node->data = data;
