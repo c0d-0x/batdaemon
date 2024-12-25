@@ -37,7 +37,6 @@ config_t *inotify_event_handler(int inotify_fd, int config_fd,
       event = (struct inotify_event *)buf_prt;
 
       if ((event->mask & IN_MODIFY) || (event->mask & IN_CREATE)) {
-        DEBUG("%s is modified", event->name);
         config_obj = handler(config_fd);
 
         if (inotify_add_watch(inotify_fd, CF_HOME_DIR, IN_MODIFY | IN_CREATE) ==

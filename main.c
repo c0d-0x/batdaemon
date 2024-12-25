@@ -1,12 +1,13 @@
-#define _GNU_SOURCE
-#include "./src/main.h"
+#include <stddef.h>
 
+#define _GNU_SOURCE
 #include <fcntl.h>
 #include <unistd.h>
 
 #include "./src/core.h"
 #include "./src/daemonz.h"
 #include "./src/debug.h"
+#include "./src/main.h"
 #include "src/inotify.h"
 
 int config_fd;
@@ -16,6 +17,7 @@ int fan_fd, inotify_fd;
 config_t* config_obj = NULL;
 
 void help(char* argv);
+int update_watchlist();
 void signal_handler(int sig);
 static void parse_options(const int argc, char* argv[]);
 static void fan_mark_wraper(int fd, config_t* config_obj);
@@ -29,7 +31,9 @@ int main(int argc, char* argv[]) {
 
   parse_options(argc, argv);
   if (check_lock(LOCK_FILE) != 0) exit(EXIT_FAILURE);
-  if (!debug) _daemonize();
+  if (!debug) {
+    DAEMONIZE();
+  }
 
   if ((fp_lock = fopen(LOCK_FILE, "w")) == NULL) {
     DEBUG("Failed to open %s file: %s", LOG_FILE, strerror(errno));
@@ -111,30 +115,32 @@ int main(int argc, char* argv[]) {
       if (fds[0].revents & POLLIN) fan_event_handler(fan_fd, fp_log);
 
       if (fds[1].revents & POLLIN) {
-        if ((config_obj = inotify_event_handler(inotify_fd, config_fd,
-                                                parse_config_file)) == NULL)
-          continue;
-        DEBUG(
-            "CONFIG_FILE :%s edited\nFlushing the watchlist from the "
-            "fanotify_markfd",
-            CONFIG_FILE);
-        if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
-                          FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
-                          NULL) == -1) {
-          DEBUG("Fanotify_Mark: Failed!!!");
-          kill(getpid(), SIGTERM);
-        }
-
-        fan_mark_wraper(fan_fd, config_obj);
-        config_obj_cleanup(config_obj);
+        if (update_watchlist() == CUSTOM_ERR) continue;
       }
     }
   }
 }
 
+int update_watchlist() {
+  if ((config_obj = inotify_event_handler(inotify_fd, config_fd,
+                                          parse_config_file)) == NULL)
+    return CUSTOM_ERR;
+  DEBUG("CONFIG_FILE: %s Modified", CONFIG_FILE);
+  DEBUG("Flushing  watchlist");
+  if (fanotify_mark(fan_fd, FAN_MARK_FLUSH,
+                    FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,
+                    NULL) == -1) {
+    DEBUG("Fanotify_Mark: Failed!!!");
+    kill(getpid(), SIGTERM);
+  }
+
+  fan_mark_wraper(fan_fd, config_obj);
+  config_obj_cleanup(config_obj);
+  return EXIT_SUCCESS;
+}
+
 static void fan_mark_wraper(int fd, config_t* config_obj) {
-  size_t i = 0;
-  while (i < config_obj->watchlist_len) {
+  for (size_t i = 0; i < config_obj->watchlist_len; i++) {
     if (fanotify_mark(fd,
                       (config_obj->watchlist[i].F_TYPE)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
@@ -145,7 +151,6 @@ static void fan_mark_wraper(int fd, config_t* config_obj) {
       kill(getpid(), SIGTERM);
     }
     DEBUG("%s: Marked", config_obj->watchlist[i].path);
-    i++;
   }
 }
 

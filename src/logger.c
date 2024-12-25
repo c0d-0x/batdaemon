@@ -136,10 +136,12 @@ int push_stk(cus_stack_t **head, json_obj_t *data) {
 }
 
 cus_stack_t *pop_stk(cus_stack_t **head) {
+  cus_stack_t *node = NULL;
   if ((*head) == NULL) {
     return NULL;
   }
-  cus_stack_t *node = (*head);
+
+  node = (*head);
   (*head) = node->next;
   node->next = NULL;
   return node;

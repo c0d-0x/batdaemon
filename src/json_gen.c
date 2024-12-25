@@ -43,9 +43,7 @@ size_t validate_json(char *json_file) {
   }
 
   close(json_fd);
-
   if (CC != ']') return INVALID_JSON;
-
   return VALID_JSON;
 }
 /*functions constructs the json object.*/

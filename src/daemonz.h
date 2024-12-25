@@ -9,6 +9,16 @@
 #include <syslog.h>
 #include <unistd.h>
 
-void _daemonize(void);
+static pid_t pid;
+#define DAEMONIZE(void)                 \
+  pid = fork();                         \
+  if (pid < 0) exit(EXIT_FAILURE);      \
+  if (pid > 0) exit(EXIT_SUCCESS);      \
+  if (setsid() < 0) exit(EXIT_FAILURE); \
+  pid = fork();                         \
+  if (pid < 0) exit(EXIT_FAILURE);      \
+  if (pid > 0) exit(EXIT_SUCCESS);      \
+  umask(0);                             \
+  openlog("cruxfilemond", LOG_PID, LOG_DAEMON);
 
 #endif /* ifndef DAEMONZ_H */

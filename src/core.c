@@ -1,5 +1,6 @@
 #include "core.h"
 
+#include <linux/fanotify.h>
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +24,7 @@ config_t *parse_config_file(int config_fd) {
   if (lseek(config_fd, 0, SEEK_SET) == -1) return NULL;
   if ((config_obj = calloc(0x1, sizeof(config_t))) == NULL) {
     DEBUG("Calloc Failed: %s", strerror(errno));
-    exit(EXIT_FAILURE);
+    kill(getpid(), SIGTERM);
   }
   /*[TODO]: fix with fgets() instead of read() */
   while (watch_len < MAX_WATCH) {
@@ -34,18 +35,15 @@ config_t *parse_config_file(int config_fd) {
     if (CC == 0x20 || (CC == '\n' && i == 0)) continue;
     if (CC == '\n') {
       if (stat(buffer, &path_stat) != 0) {
-        DEBUG("%s -> Invalid input from the config", buffer);
-        free(config_obj);
-        config_obj = NULL;
-        return NULL;
+        DEBUG("%s -> Invalid File or Folder", buffer);
+        i = 0;
+        continue;
       }
 
       if (path_stat.st_mode & S_IFDIR) {
         F_Flag = F_IS_DIR;
       } else if (path_stat.st_mode & S_IFREG) {
         F_Flag = F_IS_FILE;
-      } else {
-        continue;
       }
 
       i = 0;
@@ -89,6 +87,7 @@ size_t check_lock(char *path_lock) {
     perror("Could not create lock file");
     return CUSTOM_ERR;
   }
+  fclose(fp_lock);
   return EXIT_SUCCESS;
 }
 
@@ -146,6 +145,10 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
          queue overflow, or a file descriptor (a nonnegative
          integer). Here, queue overflow is simply ignored. */
 
+      /*if (metadata->fd == FAN_NOFD) {*/
+      /*TODO: Handle queue overflow !!*/
+      /*}*/
+
       if (metadata->fd >= 0) {
         /* Handle open permission event. */
         if (metadata->mask & FAN_OPEN) {
@@ -158,7 +161,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         }
 
         /* Retrieve and print pathname of the accessed file. */
-
         snprintf(procfd_path, sizeof(procfd_path), "/proc/self/fd/%d",
                  metadata->fd);
         path_len = readlink(procfd_path, path, sizeof(path) - 1);
@@ -192,8 +194,6 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         }
         /*[TODO:] Logging procinfo to a json format is really slow. To be
          * FIXED*/
-        /*append_to_file(fp_log, json_obj, json_constructor);*/
-        /*cleanup_procinfo(json_obj);*/
 
         close(metadata->fd);
       }
