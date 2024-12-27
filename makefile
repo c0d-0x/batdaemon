@@ -2,9 +2,9 @@
 CC = gcc
 CFLAGS = -g -Wall -Wextra -Wformat-security -pedantic
 # Debugging params 
-CFLAGS += -fsanitize=address
-CFLAGS += -fno-omit-frame-pointer
-CFLAGS += -fsanitize-recover=address
+# CFLAGS += -fsanitize=address
+# CFLAGS += -fno-omit-frame-pointer
+# CFLAGS += -fsanitize-recover=address
 
 # CLIBNOTFY = `pkg-config --cflags --libs libnotify`
 LIBS = 

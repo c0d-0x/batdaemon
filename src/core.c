@@ -48,7 +48,7 @@ config_t *parse_config_file(int config_fd) {
 
       i = 0;
       (config_obj->watchlist[watch_len].path) = strdup(buffer);
-      config_obj->watchlist[watch_len].F_TYPE = F_Flag;
+      config_obj->watchlist[watch_len].f_type = F_Flag;
       config_obj->watchlist_len = ++watch_len;
       memset(buffer, '\0', strnlen(buffer, PATH_MAX));
     } else
@@ -91,25 +91,11 @@ size_t check_lock(char *path_lock) {
   return EXIT_SUCCESS;
 }
 
-static void write_json_wrapper(cus_stack_t *stack, FILE *fp_log) {
-  cus_stack_t *stack_ptr;
-  while (stack != NULL) {
-    stack_ptr = pop_stk(&stack);
-    if (stack_ptr != NULL) {
-      append_to_file(fp_log, (json_obj_t *)stack_ptr->data, json_constructor);
-      cleanup_procinfo((json_obj_t *)stack_ptr->data);
-      free(stack_ptr);
-      stack_ptr = NULL;
-    }
-  }
-}
-
 void fan_event_handler(int fan_fd, FILE *fp_log) {
   const struct fanotify_event_metadata *metadata;
   struct fanotify_event_metadata buf[200] = {0x0};
   char *buffer[11] = {NULL};
   ssize_t len;
-  cus_stack_t *stack = NULL;
   char path[PATH_MAX] = {0x0};
   json_obj_t *json_obj;
   ssize_t path_len, p_event;
@@ -188,20 +174,15 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
         DEBUG("Event registered: %s", json_obj->e_p_event);
         DEBUG("FILE: %s\n", json_obj->file);
 
-        if (push_stk(&stack, json_obj) != 0) {
-          DEBUG("Error: Failed to push json obj");
-          kill(getpid(), SIGTERM);
-        }
         /*[TODO:] Logging procinfo to a json format is really slow. To be
          * FIXED*/
-
+        append_to_file(fp_log, json_obj, json_constructor);
+        cleanup_procinfo(json_obj);
         close(metadata->fd);
       }
       /* Advance to next event. */
       metadata = FAN_EVENT_NEXT(metadata, len);
     }
-
-    write_json_wrapper(stack, fp_log);
   }
   /*flushing the file buffer, after writing.*/
   fflush(fp_log);

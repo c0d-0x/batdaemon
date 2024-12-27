@@ -32,7 +32,7 @@
 
 // create a file to save files and dirs currently being watched.
 typedef struct {
-  size_t F_TYPE;
+  size_t f_type;
   char *path;
 } watch_t;
 

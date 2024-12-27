@@ -142,7 +142,7 @@ int update_watchlist() {
 static void fan_mark_wraper(int fd, config_t* config_obj) {
   for (size_t i = 0; i < config_obj->watchlist_len; i++) {
     if (fanotify_mark(fd,
-                      (config_obj->watchlist[i].F_TYPE)
+                      (config_obj->watchlist[i].f_type)
                           ? FAN_MARK_ADD | FAN_MARK_ONLYDIR
                           : FAN_MARK_ADD,
                       FAN_OPEN | FAN_MODIFY | FAN_EVENT_ON_CHILD, AT_FDCWD,

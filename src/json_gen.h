@@ -9,12 +9,13 @@
 #include <string.h>
 #include <unistd.h>
 
-enum FILE_STATE { EMPTY_FILE = 0, NOT_FOUND, VALID_JSON, INVALID_JSON };
+enum FILE_STATE { 
+	EMPTY_FILE = 0, 
+	NOT_FOUND, 
+	VALID_JSON, 
+	INVALID_JSON 
+};
 
-/**
- * This supposed to be custom generated, to suite your json object.
- * Use this structure to construct your json_constructor function.
- * */
 typedef struct {
   char *date;
   char *file;

@@ -5,7 +5,6 @@
 #include <string.h>
 #include <time.h>
 
-#include "core.h"
 #include "debug.h"
 #include "json_gen.h"
 
@@ -118,33 +117,6 @@ void cleanup_procinfo(json_obj_t *json_obj) {
     free(json_obj);
     json_obj = NULL;
   }
-}
-
-int push_stk(cus_stack_t **head, json_obj_t *data) {
-  cus_stack_t *node = NULL;
-  if (data == NULL) return CUSTOM_ERR;
-  if ((node = (cus_stack_t *)malloc(sizeof(cus_stack_t))) == NULL) {
-    DEBUG("Malloc Failed: %s", strerror(errno));
-    return CUSTOM_ERR;
-  }
-
-  node->data = data;
-  node->next = (*head);
-  (*head) = node;
-  data = NULL;
-  return 0;
-}
-
-cus_stack_t *pop_stk(cus_stack_t **head) {
-  cus_stack_t *node = NULL;
-  if ((*head) == NULL) {
-    return NULL;
-  }
-
-  node = (*head);
-  (*head) = node->next;
-  node->next = NULL;
-  return node;
 }
 
 char *get_locale_time(void) {

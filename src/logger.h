@@ -14,16 +14,6 @@
 #include "json_gen.h"
 
 /**
- * Custom stack for temporally
- * save procsss info before writing to our log file
- * */
-
-typedef struct node {
-  json_obj_t *data;
-  struct node *next;
-} cus_stack_t;
-
-/**
  * @brief Frees the dynamically allocated memory in the proc_info_t structure.
  *
  * This function releases the memory allocated for the string fields in the
@@ -35,8 +25,6 @@ typedef struct node {
  */
 char *get_locale_time(void);
 void cleanup_procinfo(json_obj_t *json_obj);
-int push_stk(cus_stack_t **head, json_obj_t *data);
-cus_stack_t *pop_stk(cus_stack_t **head);
 void get_proc_info(pid_t pid, char *buffer[], size_t buf_max);
 json_obj_t *tokenizer(char *buffer[]);
 char *get_user(const uid_t uid);
