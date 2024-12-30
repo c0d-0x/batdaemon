@@ -176,7 +176,7 @@ void fan_event_handler(int fan_fd, FILE *fp_log) {
 
         /*[TODO:] Logging procinfo to a json format is really slow. To be
          * FIXED*/
-        append_to_file(fp_log, json_obj, json_constructor);
+        write_json_obj(fp_log, json_obj, json_constructor);
         cleanup_procinfo(json_obj);
         close(metadata->fd);
       }

@@ -1,14 +1,13 @@
-#include <stddef.h>
+
 
 #define _GNU_SOURCE
-#include <fcntl.h>
-#include <unistd.h>
+#include "./src/main.h"
 
 #include "./src/core.h"
 #include "./src/daemonz.h"
 #include "./src/debug.h"
-#include "./src/main.h"
 #include "src/inotify.h"
+#include "src/json_gen.h"
 
 int config_fd;
 size_t debug = 0;
@@ -66,6 +65,7 @@ int main(int argc, char* argv[]) {
     kill(getpid(), SIGTERM);
   }
 
+  init_json_gen(fp_log);
   DEBUG("LOG_FILE opened: %s", LOG_FILE);
   DEBUG("Initializing an Fa_Notify instance");
   /*fanotify for mornitoring files.*/
@@ -100,7 +100,7 @@ int main(int argc, char* argv[]) {
   fds[1].fd = inotify_fd; /* inotify input */
   fds[1].events = POLLIN;
 
-  DEBUG("Setting up a Poll instance for the watchlist events");
+  DEBUG("Setting up a Poll instance for the watchlist events\n");
   while (true) {
     poll_num = poll(fds, nfds, -1);
     if (poll_num == -1) {
@@ -157,7 +157,8 @@ static void fan_mark_wraper(int fd, config_t* config_obj) {
 void signal_handler(int sig) {
   if (sig == SIGTERM || sig == SIGINT) {
     // necessary clean up then exit
-    if (fp_log != NULL) fclose(fp_log);
+
+    close_json_file(fp_log);
     remove(LOCK_FILE);
     close(config_fd);
     DEBUG("Terminating cruxfilemond");
