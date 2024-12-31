@@ -60,12 +60,11 @@ int main(int argc, char* argv[]) {
     kill(getpid(), SIGTERM);
   }
 
-  if ((fp_log = fopen(LOG_FILE, "w+")) == NULL) {
+  if ((fp_log = init_json_gen()) == NULL) {
     DEBUG("Failed to open LOG_FILE: %s", strerror(errno));
     kill(getpid(), SIGTERM);
   }
 
-  init_json_gen(fp_log);
   DEBUG("LOG_FILE opened: %s", LOG_FILE);
   DEBUG("Initializing an Fa_Notify instance");
   /*fanotify for mornitoring files.*/
