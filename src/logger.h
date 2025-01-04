@@ -23,9 +23,9 @@
  * @param procinfo A pointer to the proc_info_t structure whose memory needs to
  * be freed.
  */
+void get_proc_info(pid_t pid, char *buffer[], size_t buf_max);
 char *get_locale_time(void);
 void cleanup_procinfo(json_obj_t *json_obj);
-void get_proc_info(pid_t pid, char *buffer[], size_t buf_max);
 json_obj_t *tokenizer(char *buffer[]);
 char *get_user(const uid_t uid);
 

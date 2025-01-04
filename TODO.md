@@ -1,5 +1,14 @@
 ## New Bugs To BE FIXED
-+ loose track of the file being watch after it being opened in a text editor
-+ FILE_MODIFY doesn't work with text editors
-+ Same for inotify for to track the config file
-+ errors in writing logs to cf_log.json file
++ get process information with ebpf
+  + date
+  + file
+  + process Name
+  + event Read, write, execute, delete, move
+  + state of the process
+  + umask
+  + username: user name of the process
+  + command line arguments
+  + success: true or false
++ Socket for email | log server reporting
++ Nested directories: 1-level
++ Proper documentation
