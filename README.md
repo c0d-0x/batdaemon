@@ -1,5 +1,5 @@
 # Cruxfilemond: Linux File System Monitoring Daemon
-![Version](https://img.shields.io/badge/version-1.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green) ![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green) ![Status](https://img.shields.io/badge/status-active-brightgreen)
 
 Cruxfilemond is a lightweight file system monitoring daemon built for Linux using the fanotify API. It tracks file access and modification events within specified directories, providing users with detailed logs of filesystem activity in real time.
 
