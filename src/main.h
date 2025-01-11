@@ -5,6 +5,6 @@
 #define LOG_FILE "cf_log.json"
 #define LOCK_FILE "cf.lock"
 #define CF_HOME_DIR ".config"
-#define VERSION 1.1.0
+#define VERSION "v1.0.0"
 
 #endif  // !MAIN_H

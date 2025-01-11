@@ -9,8 +9,8 @@
 
 #include "debug.h"
 #include "json_gen.h"
-#include "logger.h"
 #include "main.h"
+#include "proc_info.h"
 
 config_t *parse_config_file(int config_fd) {
   /*DEBUG("Loading watchlist from the CONFIG_FILE: ", CONFIG_FILE);*/

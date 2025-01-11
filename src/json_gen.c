@@ -11,8 +11,8 @@
 
 #include "core.h"
 #include "debug.h"
-#include "logger.h"
 #include "main.h"
+#include "proc_info.h"
 
 static int first_write;
 size_t validate_json(char *json_file) {
