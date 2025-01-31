@@ -76,7 +76,7 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 - Event Type: File read or write - [ACCESS or MODIFIED].
 - File Path: Full path of the affected file.
 - Process Info: PID and name of the process accessing the file.
-
+- logs in json format.
 ```json
 {
 "date":"Fri Jan 31 16:45:17 2025",
@@ -88,7 +88,7 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 "username":"c0d_0x"
 }
 ```
-- logs in json format.
+
 ## Signals
 
 Cruxfilemond responds to the following signals:
