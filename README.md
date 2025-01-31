@@ -55,8 +55,8 @@ sudo ./cruxfilemond -d # to run in debug, interactive mode
 The daemon will log all file access and modification events to the console or log file (if specified).
 
 ## Command-Line Options
--d : Run as a daemon in the background.
--v : Verbose mode for additional logging details.
+-d : Run as a daemon in the background.<br>
+-v : Verbose mode for additional logging details.<br>
 Example:
 
 ```bash
@@ -78,7 +78,15 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 - Process Info: PID and name of the process accessing the file.
 
 ```json
-{"date":"Fri Jan 31 16:45:17 2025","file":"/home/c0d_0x/Documents/pwn.college/workspace/filemond/src/inotify.c","process":"cat","event":"FILE ACCESSED","state":"(running)","umask":"0022","username":"c0d_0x"}
+{
+"date":"Fri Jan 31 16:45:17 2025",
+file":"/home/c0d_0x/Documents/pwn.college/workspace/filemond/src/inotify.c",
+"process":"cat",
+"event":"FILE ACCESSED",
+"state":"(running)",
+"umask":"0022",
+"username":"c0d_0x"
+}
 ```
 - logs in json format.
 ## Signals
