@@ -80,7 +80,7 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 ```json
 {
 "date":"Fri Jan 31 16:45:17 2025",
-file":"/home/c0d_0x/workspace/filemond/src/inotify.c",
+file":"file path",
 "process":"cat",
 "event":"FILE ACCESSED",
 "state":"(running)",
@@ -94,12 +94,6 @@ file":"/home/c0d_0x/workspace/filemond/src/inotify.c",
 Cruxfilemond responds to the following signals:
 
 - SIGTERM: Gracefully shuts down the daemon.
-
-## To reload the daemon without restarting:
-
-```bash
-sudo ./bin/cruxfilemond_ipc -u # This is a wrapper to kill that sends SIGHUP, SIGTERM, and dumps cruxfilemond log_file
-```
 
 ## How it Works
 
