@@ -80,7 +80,7 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 ```json
 {
 "date":"Fri Jan 31 16:45:17 2025",
-file":"file path",
+"file":"/home/c0d_0x/secret.txt",
 "process":"cat",
 "event":"FILE ACCESSED",
 "state":"(running)",
