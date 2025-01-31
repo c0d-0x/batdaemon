@@ -1,33 +1,33 @@
 #include "json_gen.h"
 
+#include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "core.h"
 #include "debug.h"
-#include "main.h"
 #include "proc_info.h"
 
-static int first_write;
+static int write_initialized;
 size_t validate_json(char *json_file) {
   char CC;
   int len, json_fd = -1;
   if ((json_fd = open(json_file, O_RDONLY)) == -1) {
-    DEBUG("Failed to open json file");
     return NOT_FOUND;
   }
 
   len = read(json_fd, &CC, sizeof(char));
   if (len == -1) {
     close(json_fd);
-    DEBUG("Error: read failed: %s", strerror(errno));
-    kill(getpid(), SIGTERM);
+    fprintf(stderr, "Error: Failed to read file: %s\n", strerror(errno));
+    return CUSTOM_ERR;
   }
 
   if (CC != '[') {
@@ -42,12 +42,12 @@ size_t validate_json(char *json_file) {
    * seeking to the last three bytes of the file, which normally should be
    * ']\r\n' -> This is necessary for json decoders
    */
-  lseek(json_fd, -(long)sizeof(char) * 3, SEEK_END);
+  lseek(json_fd, -(long)sizeof(char) * OFFSET, SEEK_END);
   len = read(json_fd, &CC, sizeof(char));
   if (len < 1) {
     close(json_fd);
-    DEBUG("Error: read failed: %s", strerror(errno));
-    kill(getpid(), SIGTERM);
+    fprintf(stderr, "Error: read failed: %s\n", strerror(errno));
+    return CUSTOM_ERR;
   }
 
   close(json_fd);
@@ -55,44 +55,44 @@ size_t validate_json(char *json_file) {
   return VALID_JSON;
 }
 
-/*functions constructs the json object.*/
-void json_constructor(FILE *json_fp, json_obj_t *json_obj) {
-  if (json_fp != NULL) {
-    fprintf(json_fp, "{\"date\":\"%s\",", json_obj->date);
-    fprintf(json_fp, "\"file\":\"%s\",", json_obj->file);
-    fprintf(json_fp, "\"process\":\"%s\" ,", json_obj->e_process);
-    fprintf(json_fp, "\"event\":\"%s\",", json_obj->e_p_event);
-    fprintf(json_fp, "\"state\":\"%s\",", json_obj->e_p_state);
-    fprintf(json_fp, "\"umask\":\"%s\",", json_obj->e_p_Umask);
-    fprintf(json_fp, "\"username\":\"%s\"}", json_obj->e_username);
+void write_json_fmt(FILE *json_fp, char *fmt, ...) {
+  if (json_fp == NULL || fmt == NULL) {
+    fprintf(stderr, "Error: Json obj not written\n");
+    return;
   }
-}
 
-void write_json_obj(FILE *json_fp, json_obj_t *json_obj,
-                    void (*json_constructor)(FILE *, json_obj_t *)) {
-  fseek(json_fp, -(long)sizeof(char) * 3, SEEK_END);
-  if (first_write) {
+  fseek(json_fp, -(long)sizeof(char) * OFFSET, SEEK_END);
+  if (write_initialized) {
     fputc(',', json_fp);
   }
-  json_constructor(json_fp, json_obj);
-  fwrite("]\r\n", sizeof(char) * 3, 1, json_fp);
-  first_write = 1;
+
+  va_list args;
+  va_start(args, fmt);
+  if (vfprintf(json_fp, fmt, args) < 0) {
+    perror("vfprintf failed");
+    va_end(args);
+    return;
+  }
+
+  va_end(args);
+  fwrite("]\r\n", sizeof(char) * OFFSET, 1, json_fp);
+  write_initialized = 1;
 }
 
-void close_json_file(FILE *json_fp) {
+void close_json_f(FILE *json_fp) {
   if (json_fp) fclose(json_fp);
 }
 
-size_t get_file_size(char *file_path) {
+size_t get_json_f_size(char *file_path) {
   struct stat buf;
   if (stat(file_path, &buf) != 0) {
-    DEBUG("Error: File  stats failed: %s", strerror(errno));
+    fprintf(stderr, "Error: File stats failed: %s\n", strerror(errno));
     return CUSTOM_ERR;
   }
   return buf.st_size;
 }
 
-void backup_file(char *file_path) {
+void backup_json_f(char *file_path) {
   char buffer[64];
   if (access(file_path, F_OK) != 0) return;
 
@@ -102,43 +102,53 @@ void backup_file(char *file_path) {
   if (!time_date) free(time_date);
 }
 
-FILE *create_new_log(const char *file_path, const char *begin_symbol) {
+FILE *create_new_json_f(const char *file_path, const char *begin_symbol) {
   FILE *fp = NULL;
   if ((fp = fopen(file_path, "w+")) == NULL) {
-    DEBUG("Error : Failed to create_new_log: %s", strerror(errno));
+    fprintf(stderr, "Error: Failed to create_new_json_f: %s\n",
+            strerror(errno));
     return NULL;
   }
   if (begin_symbol) fputs(begin_symbol, fp);
   return fp;
 }
 
-FILE *init_json_gen() {
-  FILE *json_fp = NULL;
-  size_t flag = validate_json(LOG_FILE);
+int rotate_json_f(FILE *json_fp, char *file_name) {
   ssize_t file_size;
+  file_size = get_json_f_size(file_name);
+  /*call to log_rotation func*/
+  if (file_size >= FILE_SIZE_MAX) {
+    close_json_f(json_fp);
+    backup_json_f(file_name);
+    json_fp = create_new_json_f(JSON_FILE, BEGIN_SYMBOL);
+    return 1;
+  }
+  return CUSTOM_ERR;
+}
+
+FILE *init_json_gen(void) {
+  FILE *json_fp = NULL;
+  size_t flag = validate_json(JSON_FILE);
   switch (flag) {
     case VALID_JSON:
-      file_size = get_file_size(LOG_FILE);
-      if (file_size >= FILE_SIZE_MAX) {
-        close_json_file(json_fp);
-        backup_file(LOG_FILE);
-        json_fp = create_new_log(LOG_FILE, BEGIN_SYMBOL);
+      if (rotate_json_f(json_fp, JSON_FILE) != CUSTOM_ERR) {
         return json_fp;
       }
 
-      if ((json_fp = fopen(LOG_FILE, "r+")) == NULL) {
-        DEBUG("Error : Failed to create_new_log: %s", strerror(errno));
+      write_initialized = 1;
+      if ((json_fp = fopen(JSON_FILE, "r+")) == NULL) {
+        fprintf(stderr, "Error: Failed to create_new_json_f: %s\n",
+                strerror(errno));
         return NULL;
       }
-      first_write = 1;
       break;
     case INVALID_JSON:
-      DEBUG("Invalid json format: %s", LOG_FILE);
-      backup_file(LOG_FILE);
-      json_fp = create_new_log(LOG_FILE, BEGIN_SYMBOL);
+      fprintf(stderr, "Error: Invalid json format: %s\n", JSON_FILE);
+      backup_json_f(JSON_FILE);
+      json_fp = create_new_json_f(JSON_FILE, BEGIN_SYMBOL);
       break;
     default:
-      json_fp = create_new_log(LOG_FILE, BEGIN_SYMBOL);
+      json_fp = create_new_json_f(JSON_FILE, BEGIN_SYMBOL);
   }
   return json_fp;
 }

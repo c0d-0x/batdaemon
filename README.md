@@ -81,21 +81,6 @@ This is done in the `./src/config.h`
  *  active user's notification system by effectively resetting the environment to the user's session.
  ***/
 
-
-#define USERNAME "username"
-#define CONFIG_FILE "cf.config" /* Files or dirs do be watched in here- No spaces*/
-#define LOG_FILE "cf.log"
-#define LOCK_FILE "cf.lock"
-#define CF_HOME_DIR
-
-
-```
-
-```> [!CAUTION]
-+ The DISPLAY environment variable specifies the X display server where graphical applications should render their output.
-+ The DBUS_SESSION_BUS_ADDRESS variable defines the address of the D-Bus session bus, which allows processes to communicate with each other within the user session.
-```
-
 ## Logging
 
 Cruxfilemond logs events such as file accesses and modifications. The log output includes:
@@ -105,19 +90,14 @@ Cruxfilemond logs events such as file accesses and modifications. The log output
 - File Path: Full path of the affected file.
 - Process Info: PID and name of the process accessing the file.
 
-## Custom Log Formats (Future)
-
-Enhanced logging with additional information such as:
-
-- File hash for integrity checks.
-- Log Rotation (Future)
-- Option for log rotation to avoid large log file growth.
-
+```json
+{"date":"Fri Jan 31 16:45:17 2025","file":"/home/c0d_0x/Documents/pwn.college/workspace/filemond/src/inotify.c","process":"cat","event":"FILE ACCESSED","state":"(running)","umask":"0022","username":"c0d_0x"}
+```
+- logs in json format.
 ## Signals
 
 Cruxfilemond responds to the following signals:
 
-- SIGHUP: Reloads the configuration. Planned for future releases to dynamically add or remove directories from the watchlist.
 - SIGTERM: Gracefully shuts down the daemon.
 
 ## To reload the daemon without restarting:
@@ -139,7 +119,6 @@ sudo ./bin/cruxfilemond_ipc -u # This is a wrapper to kill that sends SIGHUP, SI
 - Linux kernel with fanotify support
 - poll library
 - Standard C libraries
-- libnotify
 
 ## Performance
 

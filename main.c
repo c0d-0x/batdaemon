@@ -157,7 +157,7 @@ void signal_handler(int sig) {
   if (sig == SIGTERM || sig == SIGINT) {
     // necessary clean up then exit
 
-    close_json_file(fp_log);
+    close_json_f(fp_log);
     remove(LOCK_FILE);
     close(config_fd);
     DEBUG("Terminating cruxfilemond");
