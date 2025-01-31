@@ -42,20 +42,15 @@ git clone https://github.com/c0d-0x/cruxfilemond.git
 
 ```bash
 cd cruxfilemond
+mkdir bin
+mkdir .config ## for configuration
 make
 ```
 
 ### Run the daemon with required permissions (root access required for fanotify):
-
+- Usage: add a dir or a file to be watch in `cruxfilemond/.config/cf.conf` file
 ```bash
-sudo ./cruxfilemond /path/to/directory
-```
-
-Usage
-To start monitoring a directory for file access and modification events:
-
-```bash
-sudo ./cruxfilemond /path/to/directory
+sudo ./cruxfilemond -d # to run in debug, interactive mode
 ```
 The daemon will log all file access and modification events to the console or log file (if specified).
 
@@ -70,16 +65,8 @@ sudo ./bin/cruxfilemond -d
 
 ## Configuration
 
-This is done in the `./src/config.h`
+This is done in the `./.config/cf.conf`
 
-```c
-
-/* Replace with your USERNAME.
- *  libnotify uses D-Bus to communicate with the user's desktop session, which typically runs under a non-root user.
- *  To send notifications to the active user's desktop, we can set the DISPLAY and DBUS_SESSION_BUS_ADDRESS
- *  environment variables to match those of the active user. This allows the root process to interact with the
- *  active user's notification system by effectively resetting the environment to the user's session.
- ***/
 
 ## Logging
 
